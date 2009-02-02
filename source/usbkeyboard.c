@@ -166,9 +166,10 @@ s32 USBKeyboard_Open(keyboard *key,device dev)
 				for(iEp = 0; iEp < uid->bNumEndpoints; iEp++)
 				{
 					ued = &uid->endpoints[iEp];
-					//printf("endpoint %i : %i\n",iEp,ued->bmAttributes);
-					if (ued->bmAttributes != 0x01)
-						continue; 
+					if (ued->bmAttributes != USB_ENPOINT_INTERRUPT)
+ 						continue;
+					if (!(ued->bEndpointAddress & USB_ENDPOINT_IN))
+						continue;
 					key->ep = ued->bEndpointAddress;
 					key->ep_size = ued->wMaxPacketSize;
 					key->configuration = ucd->bConfigurationValue;
@@ -247,32 +248,6 @@ s32 USBKeyboard_Set_Protocol(keyboard *key, u8 protocol)
 	return USB_WriteCtrlMsg(key->fd,USB_REQTYPE_SET,USB_REQ_SETPROTOCOL,protocol,0,0,0);
 }
 
-//Get a input report from control pipe
-s32 USBKeyboard_Get_InputReport_Ctrl(keyboard *key)
-{
-	u8 *buffer = 0;
-	buffer = iosAlloc(hId, 8);
-	if (buffer == NULL)
-		return -1;
-	s32 ret = USB_WriteCtrlMsg(key->fd,USB_REQTYPE_GET,USB_REQ_GETREPORT, USB_REPTYPE_INPUT<<8 | 0,0,8,buffer);
-	memcpy(key->keyNew,buffer,8);
-	iosFree(hId, buffer);
-	return ret;
-}
-
-//Set a input report to control pipe
-s32 USBKeyboard_Set_InputReport_Ctrl(keyboard *key)
-{
-	u8 *buffer = 0;
-	buffer = iosAlloc(hId, 8);
-	if (buffer == NULL)
-		return -1;
-	memcpy(buffer,key->keyNew,8);
-	s32 ret = USB_WriteCtrlMsg(key->fd,USB_REQTYPE_SET,USB_REQ_SETREPORT, USB_REPTYPE_INPUT<<8 | 0,0,8,buffer);
-	iosFree(hId, buffer);
-	return ret;
-}
-
 //Get a input report from interrupt pipe
 s32 USBKeyboard_Get_InputReport_Intr(keyboard *key)
 {
@@ -312,26 +287,20 @@ s32 USBKeyboard_Set_OutputReport_Ctrl(keyboard *key)
 	return ret;
 }
 
-//Compar each char of a portion of memory with another char and return the adress of the char found
-// or if not the find the adresse of char just after the portion of memory
-u8* memscan(u8* toparse,u8 cmp,u8 n)
-{
-	u8 i;
-	for (i=0;i<n;i++)
-		if (cmp == *(toparse+i))
-			return toparse+i;
-	return toparse+i;
-}
-
 //Get the pressed touch and call the cb fonction
 s32 USBKeyboard_GetState(keyboard *key)
 {
-	if (USBKeyboard_Get_InputReport_Ctrl(key)<0)
-		return -1;
 	u8 i;
+	u8 bad_message[6] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+	if (USBKeyboard_Get_InputReport_Intr(key)<0)
+		return -1;
+
+	if (memcmp(key->keyNew + 2, bad_message, 6) == 0)
+		return 0;
+
 	for (i = 2; i < 8; i++)
 	{
-		if (key->keyOld[i] > 3 && memscan(key->keyNew + 2, key->keyOld[i], 6) == key->keyNew + 8)
+		if (key->keyOld[i] > 3 && memchr(key->keyNew + 2, key->keyOld[i], 6) == NULL)
 		{
 			USBKeyboard_event ev;
 			ev.type = USBKEYBOARD_RELEASED;
@@ -341,7 +310,7 @@ s32 USBKeyboard_GetState(keyboard *key)
 			for (i=0;i<key->numCB;i++)
 				(*key->cb[i]) (ev,key->cbData[i]);
 		}
-		if (key->keyNew[i] > 3 && memscan(key->keyOld + 2, key->keyNew[i], 6) == key->keyOld + 8)
+		if (key->keyNew[i] > 3 && memchr(key->keyOld + 2, key->keyNew[i], 6) == NULL)
 		{
 			USBKeyboard_event ev;
 			ev.type = USBKEYBOARD_PRESSED;
@@ -353,7 +322,7 @@ s32 USBKeyboard_GetState(keyboard *key)
 		}
 	}
 	memcpy(key->keyOld, key->keyNew, 8);
-	return 1;
+	return 0;
 }
 
 //Put on the led led

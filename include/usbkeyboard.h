@@ -89,9 +89,6 @@ typedef struct _keyboard
 
 bool devEqual(device dev1,device dev2);
 
-//This function is not declare in usb.h so i declare it there
-s32 USB_GetDeviceList(const char *devpath,void *descr_buffer,u8 num_descr,u8 b0,u8 *cnt_descr);
-
 s32 USBKeyboard_Initialize();
 s32 USBKeyboard_Deinitialize();
 
@@ -102,9 +99,6 @@ s32 USBKeyboard_Close(keyboard *key);
 
 s32 USBKeyboard_Get_Protocol(keyboard *key);
 s32 USBKeyboard_Set_Protocol(keyboard *key, u8 protocol);
-
-s32 USBKeyboard_Get_InputReport_Ctrl(keyboard *key);
-s32 USBKeyboard_Set_InputReport_Ctrl(keyboard *key);
 
 s32 USBKeyboard_Get_OutputReport_Ctrl(keyboard *key,u8 *leds);
 s32 USBKeyboard_Set_OutputReport_Ctrl(keyboard *key);

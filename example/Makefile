@@ -43,7 +43,7 @@ LDFLAGS	=	-g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project
 #---------------------------------------------------------------------------------
-LIBS	:=	-lwiisprite -lpng -lz -lwiiuse -lbte -lfat -logc -lm  -lwiikeyboard
+LIBS	:=	-lz -lwiiuse -lbte -lfat -logc -lm  -lwiikeyboard
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
@@ -122,7 +122,7 @@ run:
 
 channel:
 	mkdir -p apps/$(TARGET);
-	cp $(OUTPUT).elf apps/$(TARGET)/boot.elf;
+	cp $(OUTPUT).dol apps/$(TARGET)/boot.dol;
 	cp source/icon.png apps/$(TARGET)/icon.png;
 	echo "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><app version='1'><name>"$(NAME)"</name><coder>"$(AUTHOR)"</coder><version>"$(VERSION)"</version><release_date>"$(DATE)"</release_date><short_description>"$(SDESC)"</short_description><long_description>"$(LDESC)"</long_description></app>" > apps/$(TARGET)/meta.xml;
 
