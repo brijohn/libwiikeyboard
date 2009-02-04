@@ -126,25 +126,11 @@ int main(int argc, char **argv) {
 		if (event.type != KEYBOARD_PRESSED)
 			continue;
 		//TODO
-		if (event.keysym.ch<64 && event.keysym.ch>47)
-			sprintf(result,"%s%c",result,event.keysym.ch - 16*( (event.keysym.mod & KMOD_LSHIFT) != 0));
-		if (event.keysym.ch<126 && event.keysym.ch>96)
-			sprintf(result,"%s%c",result,event.keysym.ch - 32*( (event.keysym.mod & KMOD_LSHIFT) != 0));
-		if (event.keysym.ch==KEYBOARD_SPACE)
-			sprintf(result,"%s ",result);
-		if (event.keysym.ch==KEYBOARD_RETURN)
-			sprintf(result,"%s\n",result);
-
-		if (event.keysym.ch<64 && event.keysym.ch>47)
-			printf("%c",event.keysym.ch - 16*( (event.keysym.mod & KMOD_LSHIFT) != 0));
-		if (event.keysym.ch<126 && event.keysym.ch>96)
-			printf("%c",event.keysym.ch - 32*( (event.keysym.mod & KMOD_LSHIFT) != 0));
-		if (event.keysym.ch==KEYBOARD_SPACE)
-			printf(" ");
-		if (event.keysym.ch==KEYBOARD_RETURN)
-			printf("\n");
-
-		if (event.keysym.ch==KEYBOARD_RETURN)
+		if ((event.keysym.sym >> 8) & 0xFF == 0) {
+			sprintf(result,"%s%c", result, event.keysym.sym & 0xFF);
+			printf("%c", event.keysym.sym & 0xFF);
+		}
+		if (event.keysym.sym == KBD_return)
 			break;
 	}
 	
@@ -193,7 +179,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -230,7 +216,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -268,7 +254,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -305,7 +291,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -343,7 +329,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -380,7 +366,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -414,7 +400,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -437,7 +423,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -460,7 +446,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.ch=='y')
+	if (event.keysym.sym == KBD_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -496,14 +482,10 @@ int main(int argc, char **argv) {
 				printf("\nA keyboard has been disconnected\n");
 			break;
 			case KEYBOARD_PRESSED:
-				if (event.keysym.ch<64 && event.keysym.ch>47)
-					printf("%c",event.keysym.ch - 16*( (event.keysym.mod & KMOD_LSHIFT) != 0));
-				if (event.keysym.ch<126 && event.keysym.ch>96)
-					printf("%c",event.keysym.ch - 32*( (event.keysym.mod & KMOD_LSHIFT) != 0));
-				if (event.keysym.ch==KEYBOARD_SPACE)
-					printf(" ");
-				if (event.keysym.ch==KEYBOARD_RETURN)
-					printf("\n");
+				if ((event.keysym.sym >> 8) & 0xFF == 0) {
+					sprintf(result,"%s%c", result, event.keysym.sym & 0xFF);
+					printf("%c", event.keysym.sym & 0xFF);
+				}
 			break;
 			case KEYBOARD_RELEASED:
 				

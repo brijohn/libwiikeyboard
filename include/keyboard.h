@@ -7,6 +7,7 @@
 
 #ifdef LIBBUILD
 #include "usbkeyboard.h"
+#include "keymapper.h"
 #else
 #include <libwiikeyboard/usbkeyboard.h>
 #endif
@@ -25,9 +26,8 @@ typedef enum
 
 typedef struct _keyboard_keysym
 {  
-	u32 scancode;
-	KEYBOARD_KEY sym;
-	char ch;
+	u8 scancode;
+	u16 sym;
 	KEYBOARD_MOD mod;
 
 }keyboard_keysym;
@@ -49,6 +49,10 @@ s32 KEYBOARD_Init();
 s32 KEYBOARD_Deinit();
 
 s32 KEYBOARD_getEvent(keyboardEvent* event);
+
+s32 KEYBOARD_InitKeyMap();
+s32 KEYBOARD_LoadKeyMap(char* name);
+u16 KEYBOARD_GetKeySym(u8 scancode, u16 modifiers);
 
 s32 KEYBOARD_ScanKeyboards();
 

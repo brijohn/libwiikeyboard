@@ -2,7 +2,7 @@
 
 usbkeyboard.c -- Usb keyboard support(boot protocole)
 
-Copyright (C) 2008
+Copyright (C) 2008, 2009
 DAVY Guillaume davyg2@gmail.com
 
 This software is provided 'as-is', without any express or implied
