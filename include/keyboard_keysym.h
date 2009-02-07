@@ -10,7 +10,7 @@
 #define KBD_backspace                     0x0008
 #define KBD_tab                           0x0009
 #define KBD_clear                         0x000c
-#define KBD_return                        0x000d
+#define KBD_return                        0x000a
 #define KBD_pause                         0x0013
 #define KBD_escape                        0x001b
 
@@ -241,7 +241,7 @@
 #define KBD_KP_minus                      0xd92d
 #define KBD_KP_slash                      0xd92f
 #define KBD_KP_equal                      0xd93d
-#define KBD_KP_enter                      0xd90d
+#define KBD_KP_enter                      0xd90a
 
 #define KBD_Up                            0xda00
 #define KBD_Down                          0xda01
