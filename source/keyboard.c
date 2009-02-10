@@ -93,9 +93,9 @@ s32 _event_cb(USBKeyboard_event kevent,void *usrdata)
 		KEYBOARD_addEvent(event);
 		return 1;
 	}
-	event.keysym.mod = key->modifiers;
+
 	event.keysym.scancode = kevent.keyCode;
-	event.keysym.sym = KEYBOARD_GetKeySym(event.keysym.scancode, event.keysym.mod);
+	event.keysym.sym = KEYBOARD_GetKeySym(event.keysym.scancode, key->modifiers);
 	if (event.keysym.sym == 0xfffe)
 		return 0;
 
@@ -132,6 +132,7 @@ s32 _event_cb(USBKeyboard_event kevent,void *usrdata)
 		for (i=0;i<_manager.num;i++)
 			USBKeyboard_SwitchLed(&_manager.key[i],USBKEYBOARD_LEDSCROLL);
 	}
+	event.keysym.mod = key->modifiers;
 	KEYBOARD_addEvent(event);
 	return 1;
 }

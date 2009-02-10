@@ -49,7 +49,6 @@ typedef struct _USBKeyboard_event
 {
 	USBKeyboard_eventType type;
 	u8 keyCode;
-	u8 state;
 
 }USBKeyboard_event;
 

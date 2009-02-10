@@ -287,12 +287,11 @@ s32 USBKeyboard_Set_OutputReport_Ctrl(keyboard *key)
 	return ret;
 }
 
-void USBKeyboard_SubmitEvent(keyboard *key, USBKeyboard_eventType type, u8 code, u8 state)
+void USBKeyboard_SubmitEvent(keyboard *key, USBKeyboard_eventType type, u8 code)
 {
 	USBKeyboard_event ev;
 	ev.type = type;
 	ev.keyCode = code;
-	ev.state = state;
 	u8 i;
 	for (i=0;i<key->numCB;i++)
 		(*key->cb[i]) (ev,key->cbData[i]);
@@ -311,62 +310,62 @@ s32 USBKeyboard_GetState(keyboard *key)
 
 	if(key->keyNew[0] != key->oldState) {
 		if ((key->keyNew[0] & 0x02) && !(key->oldState & 0x02)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe1 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe1);
 		} else if ((key->oldState & 0x02) && !(key->keyNew[0] & 0x02)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe1 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe1);
 		}
 
 		if ((key->keyNew[0] & 0x20) && !(key->oldState & 0x20)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe5 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe5);
 		} else if ((key->oldState & 0x20) && !(key->keyNew[0] & 0x20)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe5 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe5);
 		}
 
 		if ((key->keyNew[0] & 0x01) && !(key->oldState & 0x01)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe0 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe0);
 		} else if ((key->oldState & 0x01) && !(key->keyNew[0] & 0x01)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe0 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe0);
 		}
 
 		if ((key->keyNew[0] & 0x10) && !(key->oldState & 0x10)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe4 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe4);
 		} else if ((key->oldState & 0x10) && !(key->keyNew[0] & 0x10)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe4 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe4);
 		}
 
 		if ((key->keyNew[0] & 0x04) && !(key->oldState & 0x04)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe2 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe2);
 		} else if ((key->oldState & 0x04) && !(key->keyNew[0] & 0x04)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe2 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe2);
 		}
 
 		if ((key->keyNew[0] & 0x40) && !(key->oldState & 0x40)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe6 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe6);
 		} else if ((key->oldState & 0x40) && !(key->keyNew[0] & 0x40)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe6 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe6);
 		}
 
 		if ((key->keyNew[0] & 0x08) && !(key->oldState & 0x08)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe3 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe3);
 		} else if ((key->oldState & 0x08) && !(key->keyNew[0] & 0x08)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe3 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe3);
 		}
 
 		if ((key->keyNew[0] & 0x80) && !(key->oldState & 0x80)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe7 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe7);
 		} else if ((key->oldState & 0x80) && !(key->keyNew[0] & 0x80)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe7 , key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe7);
 		}
 	}
 	for (i = 2; i < 8; i++)
 	{
 		if (key->keyOld[i] > 3 && memchr(key->keyNew + 2, key->keyOld[i], 6) == NULL)
 		{
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, key->keyOld[i], key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, key->keyOld[i]);
 		}
 		if (key->keyNew[i] > 3 && memchr(key->keyOld + 2, key->keyNew[i], 6) == NULL)
 		{
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, key->keyNew[i], key->keyNew[0]);
+			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, key->keyNew[i]);
 		}
 	}
 	memcpy(key->keyOld, key->keyNew, 8);
