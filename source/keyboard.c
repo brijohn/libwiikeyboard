@@ -65,6 +65,16 @@ s32 KEYBOARD_addEvent(keyboardEvent event)
 	return 1;
 }
 
+void KEYBOARD_SetModifier(KEYBOARD_MOD mod, u8 on) {
+	int i;
+	for (i=0;i<_manager.num;i++) {
+		if (on)
+			_manager.key[i].modifiers |= mod;
+		else
+			_manager.key[i].modifiers &= ~mod;
+	}
+}
+
 //Event callback, call when an event occurs in usbkeyboard
 s32 _event_cb(USBKeyboard_event kevent,void *usrdata)
 {
@@ -83,31 +93,45 @@ s32 _event_cb(USBKeyboard_event kevent,void *usrdata)
 		KEYBOARD_addEvent(event);
 		return 1;
 	}
+	event.keysym.mod = key->modifiers;
 	event.keysym.scancode = kevent.keyCode;
-	event.keysym.mod = 
-		KMOD_LCTRL	*((kevent.state>>0)&1) |
-		KMOD_LSHIFT	*((kevent.state>>1)&1) |
-		KMOD_LALT	*((kevent.state>>2)&1) |
-		KMOD_LMETA	*((kevent.state>>3)&1) |
-		KMOD_RCTRL	*((kevent.state>>4)&1) |
-		KMOD_RSHIFT	*((kevent.state>>5)&1) |
-		KMOD_RALT	*((kevent.state>>6)&1) |
-		KMOD_RMETA	*((kevent.state>>7)&1) |
-		KMOD_NUM	*(kevent.keyCode == 83)|
-		KMOD_CAPS	*(kevent.keyCode == 57);
 	event.keysym.sym = KEYBOARD_GetKeySym(event.keysym.scancode, event.keysym.mod);
 	if (event.keysym.sym == 0xfffe)
 		return 0;
+
+	if (event.keysym.sym == KBD_LeftShift )
+		KEYBOARD_SetModifier(KMOD_LSHIFT, event.type == KEYBOARD_PRESSED);
+	if (event.keysym.sym == KBD_RightShift)
+		KEYBOARD_SetModifier(KMOD_RSHIFT, event.type == KEYBOARD_PRESSED);
+	if (event.keysym.sym == KBD_LeftCtrl)
+		KEYBOARD_SetModifier(KMOD_LCTRL, event.type == KEYBOARD_PRESSED);
+	if (event.keysym.sym == KBD_RightCtrl)
+		KEYBOARD_SetModifier(KMOD_RCTRL, event.type == KEYBOARD_PRESSED);
+	if (event.keysym.sym == KBD_LeftAlt)
+		KEYBOARD_SetModifier(KMOD_LALT, event.type == KEYBOARD_PRESSED);
+	if (event.keysym.sym == KBD_RightAlt)
+		KEYBOARD_SetModifier(KMOD_RALT, event.type == KEYBOARD_PRESSED);
+	if (event.keysym.sym == KBD_LeftMeta)
+		KEYBOARD_SetModifier(KMOD_LMETA, event.type == KEYBOARD_PRESSED);
+	if (event.keysym.sym == KBD_RightMeta)
+		KEYBOARD_SetModifier(KMOD_RMETA, event.type == KEYBOARD_PRESSED);
 	u8 i;
-	if (event.keysym.sym == KBD_Numlock && event.type == KEYBOARD_RELEASED)
+	if (event.keysym.sym == KBD_Numlock && event.type == KEYBOARD_RELEASED) {
+		KEYBOARD_SetModifier(KMOD_NUM, !(key->modifiers & KMOD_NUM));
 		for (i=0;i<_manager.num;i++)
 			USBKeyboard_SwitchLed(&_manager.key[i],USBKEYBOARD_LEDNUM);
-	if (event.keysym.sym == KBD_Capslock && event.type == KEYBOARD_RELEASED)
+	}
+
+	if (event.keysym.sym == KBD_Capslock && event.type == KEYBOARD_RELEASED) {
+		KEYBOARD_SetModifier(KMOD_CAPS, !(key->modifiers & KMOD_CAPS));
 		for (i=0;i<_manager.num;i++)
 			USBKeyboard_SwitchLed(&_manager.key[i],USBKEYBOARD_LEDCAPS);
-	if (event.keysym.sym == KBD_Scrollock && event.type == KEYBOARD_RELEASED)
+	}
+
+	if (event.keysym.sym == KBD_Scrollock && event.type == KEYBOARD_RELEASED) {
 		for (i=0;i<_manager.num;i++)
 			USBKeyboard_SwitchLed(&_manager.key[i],USBKEYBOARD_LEDSCROLL);
+	}
 	KEYBOARD_addEvent(event);
 	return 1;
 }

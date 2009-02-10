@@ -277,6 +277,15 @@
 #define KBD_Volumeup                      0xdb16
 #define KBD_Volumedown                    0xdb17
 
+#define KBD_LeftShift                     0xdd00
+#define KBD_RightShift                    0xdd01
+#define KBD_LeftCtrl                      0xdd02
+#define KBD_RightCtrl                     0xdd03
+#define KBD_LeftAlt                       0xdd04
+#define KBD_RightAlt                      0xdd05
+#define KBD_LeftMeta                      0xdd06
+#define KBD_RightMeta                     0xdd07
+
 typedef enum {
 	KMOD_NONE  = 0x0000,
 	KMOD_LSHIFT= 0x0001,

@@ -35,7 +35,7 @@ distribution.
 #include <keyboard.h>
 #include "keyboard_priv.h"
 
-BEGIN_KEYMAP(default_map, 116)
+BEGIN_KEYMAP(default_map, 124)
 	MAP(4, a, A)
 	MAP(5, b, B)
 	MAP(6, c, C)
@@ -151,6 +151,14 @@ BEGIN_KEYMAP(default_map, 116)
 	MAP(127, Mute, null)
 	MAP(128, Volumeup, null)
 	MAP(129, Volumedown, null)
+	MAP(224, LeftCtrl, null)
+	MAP(225, LeftShift, null)
+	MAP(226, LeftAlt, null)
+	MAP(227, LeftMeta, null)
+	MAP(228, RightCtrl, null)
+	MAP(229, RightShift, null)
+	MAP(230, RightAlt, null)
+	MAP(231, RightMeta, null)
 END_KEYMAP
 
 s32 KEYBOARD_LoadKeyMap(char* name) {

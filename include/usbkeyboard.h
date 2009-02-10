@@ -71,8 +71,10 @@ typedef struct _keyboard
 	
 	u8 keyNew[8];
 	u8 keyOld[8];
-	
+	u8 oldState;
+
 	u8 leds;
+	u16 modifiers;
 	
 	eventcallback cb[CBEVENT_MAXNUM];
 	void* cbData[CBEVENT_MAXNUM];
