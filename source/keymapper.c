@@ -241,17 +241,29 @@ u16 KEYBOARD_GetKeySym(u8 scancode, u16 modifiers)
 	struct symbol *ref = &_manager.keymap[scancode];
 	u16 *group;
 	u8 shift = ((modifiers & KMOD_LSHIFT) || (modifiers & KMOD_RSHIFT));
+	u16 num_lock = modifiers & KMOD_NUM;
+	u16 shift_lock = modifiers & KMOD_CAPS;
 	if (ref->scancode != scancode)
 		return 0xfffe;
+
 	if (modifiers & KMOD_RALT)
 		group = ref->group2;
 	else
 		group = ref->group1;
-	if (!shift) {
-		return group[0];
-	} else {
+
+	if (num_lock && ((group[1] >> 8) & 0xFF) == 0xd9) {
+		if (shift || shift_lock)
+			return group[0];
+		else
+			return group[1];
+	} else if (shift_lock) {
+		if (shift)
+			return group[0];
+		else
+			return (group[1] == KBD_null ? group[0] : group[1]);
+	} else if (shift) {
 		return (group[1] == KBD_null ? group[0] : group[1]);
 	}
 	
-	return 0xfffe;
+	return group[0];
 }
