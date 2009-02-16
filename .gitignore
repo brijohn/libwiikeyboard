@@ -1,0 +1,5 @@
+*.dol
+*.elf
+build
+lib
+wii_release
