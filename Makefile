@@ -17,8 +17,8 @@ include $(DEVKITPPC)/wii_rules
 #---------------------------------------------------------------------------------
 PLATFORM	:=	wii
 BUILD		:=	wii_release
-SOURCES		:=	source 
-INCLUDES	:=	include
+SOURCES		:=	libwiikeyboard
+INCLUDES	:=	gc/wiikeyboard
 DATA		:=
 LIBDIR		:=	../lib
 
@@ -96,8 +96,8 @@ dist:
 
 install:
 	cp $(BUILD)/$(CUBEBIN) $(DEVKITPRO)/libogc/lib/wii
-	@mkdir -p $(DEVKITPRO)/libogc/include/libwiikeyboard
-	cp include/* $(DEVKITPRO)/libogc/include/libwiikeyboard
+	@mkdir -p $(DEVKITPRO)/libogc/include/wiikeyboard
+	cp gc/wiikeyboard/* $(DEVKITPRO)/libogc/include/wiikeyboard
 
 #---------------------------------------------------------------------------------
 else
