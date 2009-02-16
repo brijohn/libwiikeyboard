@@ -77,13 +77,10 @@ typedef enum
 s32 KEYBOARD_Init(void);
 s32 KEYBOARD_Deinit(void);
 
-s32 KEYBOARD_ScanForKeyboard(void);
-
 s32 KEYBOARD_InitKeyMap();
 s32 KEYBOARD_LoadKeyMap(char* name);
 u16 KEYBOARD_GetKeySym(u8 scancode, u16 modifiers);
 
-s32 KEYBOARD_Scan(void);
 s32 KEYBOARD_GetEvent(keyboard_event *event);
 s32 KEYBOARD_FlushEvents(void);
 

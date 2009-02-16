@@ -46,6 +46,17 @@ typedef struct _node
 
 struct kbd_manager *_manager = NULL;
 
+#define KBD_THREAD_STACKSIZE (1024 * 4)
+#define KBD_THREAD_PRIO 64
+#define KBD_THREAD_UDELAY (1000 * 10)
+#define KBD_THREAD_KBD_SCAN_INTERVAL (3 * 100)
+
+static lwpq_t _kbd_queue;
+static lwp_t _kbd_thread;
+static u8 *_kbd_stack;
+static bool _kbd_thread_running = false;
+static bool _kbd_thread_quit = false;
+
 //Add an event to the event queue
 static s32 _kbd_addEvent(const keyboard_event event)
 {
@@ -115,6 +126,62 @@ static s32 _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 	return 1;
 }
 
+//This function call usb function to check if a new keyboard is connected
+static s32 _kbd_scan_for_keyboard(void)
+{
+	u16 vid, pid;
+	s32 ret;
+
+	ret = USBKeyboard_Find(&vid, &pid);
+
+	if (ret < 1)
+		return ret;
+
+	ret = USBKeyboard_Open(&_manager->kbd, vid, pid);
+
+	if (ret < 0)
+		return ret;
+
+	USBKeyboard_SetCB(&_manager->kbd, &_kbd_event_cb, &_manager->kbd);
+
+	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDNUM, true);
+	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDCAPS, true);
+	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDSCROLL, true);
+	usleep(200 * 1000);
+	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDNUM, false);
+	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDCAPS, false);
+	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDSCROLL, false);
+
+	keyboard_event event;
+	event.type = KEYBOARD_CONNECTED;
+	memset (&event.keysym, 0, sizeof (keyboard_keysym));
+	_kbd_addEvent(event);
+
+	return ret;
+}
+
+static void * _kbd_thread_func(void *arg) {
+	u32 turns = 0;
+
+	_kbd_scan_for_keyboard();
+
+	while (!_kbd_thread_quit) {
+		// scan for new attached keyboards
+		turns++;
+		if (turns % (KBD_THREAD_KBD_SCAN_INTERVAL) == 0) {
+			if (!_manager->kbd.connect)
+				_kbd_scan_for_keyboard();
+
+			turns = 0;
+		}
+
+		USBKeyboard_Scan(&_manager->kbd);
+		usleep(KBD_THREAD_UDELAY);
+	}
+
+	return NULL;
+}
+
 //Initialize USB and USB_KEYBOARD and the event queue
 s32 KEYBOARD_Init(void)
 {
@@ -140,12 +207,53 @@ s32 KEYBOARD_Init(void)
 		return -3;
 	}
 
-	return KEYBOARD_ScanForKeyboard();
+	if (!_kbd_thread_running) {
+		// start the keyboard thread
+		_kbd_thread_quit = false;
+
+		_kbd_stack = (u8 *) memalign(32, KBD_THREAD_STACKSIZE);
+
+		if (!_kbd_stack)
+			return -4;
+
+		memset(_kbd_stack, 0, KBD_THREAD_STACKSIZE);
+
+		LWP_InitQueue(&_kbd_queue);
+
+		s32 res = LWP_CreateThread(&_kbd_thread, _kbd_thread_func, NULL,
+									_kbd_stack, KBD_THREAD_STACKSIZE,
+									KBD_THREAD_PRIO);
+
+		if (res) {
+			LWP_CloseQueue(_kbd_queue);
+			free(_kbd_stack);
+
+			USBKeyboard_Close(&_manager->kbd);
+			free(_manager);
+
+			return -5;
+		}
+
+		_kbd_thread_running = res == 0;
+	}
+
+	return 0;
 }
 
 //Deinitialize USB and USB_KEYBOARD and the event queue
 s32 KEYBOARD_Deinit(void)
 {
+	if (_kbd_thread_running) {
+		_kbd_thread_quit = true;
+		LWP_ThreadBroadcast(_kbd_queue);
+
+		LWP_JoinThread(_kbd_thread, NULL);
+		LWP_CloseQueue(_kbd_queue);
+
+		free(_kbd_stack);
+		_kbd_thread_running = false;
+	}
+
 	USBKeyboard_Deinitialize();
 	USB_Deinitialize();
 
@@ -155,54 +263,6 @@ s32 KEYBOARD_Deinit(void)
 		free(_manager);
 	}
 	return 1;
-}
-
-//This function call usb function to check if a new keyboard is connected
-s32 KEYBOARD_ScanForKeyboard(void)
-{
-	u16 vid, pid;
-	s32 ret;
-
-	if (!_manager)
-		return -1;
-
-	if (_manager->kbd.connect)
-		return 0;
-
-	ret = USBKeyboard_Find(&vid, &pid);
-
-	if (ret < 1)
-		return ret;
-	ret = USBKeyboard_Open(&_manager->kbd, vid, pid);
-
-	if (ret < 0)
-		return ret;
-
-	USBKeyboard_SetCB(&_manager->kbd, &_kbd_event_cb, &_manager->kbd);
-
-	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDNUM, true);
-	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDCAPS, true);
-	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDSCROLL, true);
-	usleep(200 * 1000);
-	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDNUM, false);
-	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDCAPS, false);
-	USBKeyboard_SetLed(&_manager->kbd, USBKEYBOARD_LEDSCROLL, false);
-
-	keyboard_event event;
-	event.type = KEYBOARD_CONNECTED;
-	memset (&event.keysym, 0, sizeof (keyboard_keysym));
-	_kbd_addEvent(event);
-
-	return ret;
-}
-
-//check for pending events
-s32 KEYBOARD_Scan(void)
-{
-	if (!_manager)
-		return -1;
-	KEYBOARD_ScanForKeyboard();
-	return USBKeyboard_Scan(&_manager->kbd);
 }
 
 //Get the first event of the event queue

@@ -92,7 +92,6 @@ int main(int argc, char **argv) {
 			if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 			VIDEO_WaitVSync();
 			
-			KEYBOARD_Scan();
 			KEYBOARD_GetEvent(&event);
 		}
 		report[num++]=1;
@@ -120,7 +119,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type != KEYBOARD_PRESSED)
@@ -159,7 +157,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -173,7 +170,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -196,7 +192,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -210,7 +205,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -234,7 +228,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -248,7 +241,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -271,7 +263,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -285,7 +276,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -309,7 +299,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -323,7 +312,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -346,7 +334,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -360,7 +347,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -394,7 +380,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -417,7 +402,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -440,7 +424,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
@@ -470,7 +453,6 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_Scan();
 		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		switch (event.type)
