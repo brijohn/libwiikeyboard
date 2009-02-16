@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
 	if (ret==0)
 	{
 		printf("Please connect one usbkeyboard to the wii\n");
-		keyboardEvent event;
+		keyboard_event event;
 		while (event.type!=KEYBOARD_CONNECTED)
 		{
 			WPAD_ScanPads();
@@ -92,8 +92,8 @@ int main(int argc, char **argv) {
 			if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 			VIDEO_WaitVSync();
 			
-			KEYBOARD_ScanKeyboards();
-			KEYBOARD_getEvent(&event);
+			KEYBOARD_Scan();
+			KEYBOARD_GetEvent(&event);
 		}
 		report[num++]=1;
 		printf("A keyboard has been connected\n");
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 	}
 	
 	printf("Try to write without the ' : '%s' \\n means return key (you can't use backspace or del, so don't make mistake ;) and to make uppercase press Shift + key, don't use capslock) ",string);
-	keyboardEvent event;
+	keyboard_event event;
 	char result[99] = "";
 	while (1)
 	{
@@ -120,8 +120,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type != KEYBOARD_PRESSED)
 			continue;
@@ -159,8 +159,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -173,8 +173,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 		report[num++]=1;
 	else
 		report[num++]=0;
-	if (KEYBOARD_getLed(KEYBOARD_LEDCAPS))
+	if (KEYBOARD_GetLed(KEYBOARD_LEDCAPS))
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -196,8 +196,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -210,8 +210,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
 		report[num++]=1;
 	else
 		report[num++]=0;
-	if (!KEYBOARD_getLed(KEYBOARD_LEDCAPS))
+	if (!KEYBOARD_GetLed(KEYBOARD_LEDCAPS))
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -234,8 +234,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -248,8 +248,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -258,7 +258,7 @@ int main(int argc, char **argv) {
 		report[num++]=1;
 	else
 		report[num++]=0;
-	if (KEYBOARD_getLed(KEYBOARD_LEDNUM))
+	if (KEYBOARD_GetLed(KEYBOARD_LEDNUM))
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -271,8 +271,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -285,8 +285,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -295,7 +295,7 @@ int main(int argc, char **argv) {
 		report[num++]=1;
 	else
 		report[num++]=0;
-	if (!KEYBOARD_getLed(KEYBOARD_LEDNUM))
+	if (!KEYBOARD_GetLed(KEYBOARD_LEDNUM))
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -309,8 +309,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -323,8 +323,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
 		report[num++]=1;
 	else
 		report[num++]=0;
-	if (KEYBOARD_getLed(KEYBOARD_LEDSCROLL))
+	if (KEYBOARD_GetLed(KEYBOARD_LEDSCROLL))
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -346,8 +346,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -360,8 +360,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -370,7 +370,7 @@ int main(int argc, char **argv) {
 		report[num++]=1;
 	else
 		report[num++]=0;
-	if (!KEYBOARD_getLed(KEYBOARD_LEDSCROLL))
+	if (!KEYBOARD_GetLed(KEYBOARD_LEDSCROLL))
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -378,14 +378,14 @@ int main(int argc, char **argv) {
 
 	printf("Now the app will put on some led for 2 seconds and you will be ask if the led has really been on");
 	
-	KEYBOARD_putOffLed(KEYBOARD_LEDCAPS);
-	KEYBOARD_putOffLed(KEYBOARD_LEDNUM);
-	KEYBOARD_putOffLed(KEYBOARD_LEDSCROLL);
+	KEYBOARD_SetLed(KEYBOARD_LEDCAPS, 0);
+	KEYBOARD_SetLed(KEYBOARD_LEDNUM, 0);
+	KEYBOARD_SetLed(KEYBOARD_LEDSCROLL, 0);
 	
 	printf("Putting CapsLock on ...\n");
-	KEYBOARD_putOnLed(KEYBOARD_LEDCAPS);
+	KEYBOARD_SetLed(KEYBOARD_LEDCAPS, 1);
 	sleep(2);
-	KEYBOARD_putOffLed(KEYBOARD_LEDCAPS);
+	KEYBOARD_SetLed(KEYBOARD_LEDCAPS, 0);
 	printf("Does the corresponding led switched on ?");
 	while (1)
 	{
@@ -394,8 +394,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -406,9 +406,9 @@ int main(int argc, char **argv) {
 		report[num++]=0;
 	
 	printf("Putting NumLock on ...\n");
-	KEYBOARD_putOnLed(KEYBOARD_LEDNUM);
+	KEYBOARD_SetLed(KEYBOARD_LEDNUM, 1);
 	sleep(2);
-	KEYBOARD_putOffLed(KEYBOARD_LEDNUM);
+	KEYBOARD_SetLed(KEYBOARD_LEDNUM, 0);
 	printf("Does the corresponding led switched on ?");
 	while (1)
 	{
@@ -417,8 +417,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -429,9 +429,9 @@ int main(int argc, char **argv) {
 		report[num++]=0;
 	
 	printf("Putting ScrollLock on ...\n");
-	KEYBOARD_putOnLed(KEYBOARD_LEDSCROLL);
+	KEYBOARD_SetLed(KEYBOARD_LEDSCROLL, 1);
 	sleep(2);
-	KEYBOARD_putOffLed(KEYBOARD_LEDSCROLL);
+	KEYBOARD_SetLed(KEYBOARD_LEDSCROLL, 0);
 	printf("Does the corresponding led switched on ?");
 	while (1)
 	{
@@ -440,8 +440,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		if (event.type == KEYBOARD_PRESSED)
 			break;
@@ -470,8 +470,8 @@ int main(int argc, char **argv) {
 		if ( pressed & WPAD_BUTTON_HOME ) exit(0);
 		VIDEO_WaitVSync();
 		
-		KEYBOARD_ScanKeyboards();
-		if (! KEYBOARD_getEvent(&event))
+		KEYBOARD_Scan();
+		if (! KEYBOARD_GetEvent(&event))
 			continue;
 		switch (event.type)
 		{

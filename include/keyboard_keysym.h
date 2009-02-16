@@ -1,3 +1,32 @@
+/*-------------------------------------------------------------
+keyboard_keysym.h
+
+Copyright (C) 2008, 2009
+DAVY Guillaume davyg2@gmail.com
+Brian Johnson brijohn@gmail.com
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any
+damages arising from the use of this software.
+
+Permission is granted to anyone to use this software for any
+purpose, including commercial applications, and to alter it and
+redistribute it freely, subject to the following restrictions:
+
+1.	The origin of this software must not be misrepresented; you
+must not claim that you wrote the original software. If you use
+this software in a product, an acknowledgment in the product
+documentation would be appreciated but is not required.
+
+2.	Altered source versions must be plainly marked as such, and
+must not be misrepresented as being the original software.
+
+3.	This notice may not be removed or altered from any source
+distribution.
+
+-------------------------------------------------------------*/
+
+
 #ifndef _KEYBOARD_KEYSYM_H
 #define _KEYBOARD_KEYSYM_H
 
@@ -14,52 +43,52 @@
 #define KBD_pause                         0x0013
 #define KBD_escape                        0x001b
 
-#define KBD_space                         0x0020  
-#define KBD_exclam                        0x0021  
-#define KBD_quotedbl                      0x0022  
-#define KBD_numbersign                    0x0023  
-#define KBD_dollar                        0x0024  
-#define KBD_percent                       0x0025  
-#define KBD_ampersand                     0x0026  
-#define KBD_apostrophe                    0x0027    
-#define KBD_parenleft                     0x0028  
-#define KBD_parenright                    0x0029  
-#define KBD_asterisk                      0x002a  
-#define KBD_plus                          0x002b  
-#define KBD_comma                         0x002c  
-#define KBD_minus                         0x002d  
+#define KBD_space                         0x0020
+#define KBD_exclam                        0x0021
+#define KBD_quotedbl                      0x0022
+#define KBD_numbersign                    0x0023
+#define KBD_dollar                        0x0024
+#define KBD_percent                       0x0025
+#define KBD_ampersand                     0x0026
+#define KBD_apostrophe                    0x0027
+#define KBD_parenleft                     0x0028
+#define KBD_parenright                    0x0029
+#define KBD_asterisk                      0x002a
+#define KBD_plus                          0x002b
+#define KBD_comma                         0x002c
+#define KBD_minus                         0x002d
 #define KBD_period                        0x002e
-#define KBD_slash                         0x002f  
-#define KBD_0                             0x0030  
-#define KBD_1                             0x0031  
-#define KBD_2                             0x0032  
-#define KBD_3                             0x0033  
-#define KBD_4                             0x0034  
-#define KBD_5                             0x0035  
-#define KBD_6                             0x0036  
-#define KBD_7                             0x0037  
-#define KBD_8                             0x0038  
-#define KBD_9                             0x0039  
-#define KBD_colon                         0x003a  
-#define KBD_semicolon                     0x003b  
-#define KBD_less                          0x003c  
+#define KBD_slash                         0x002f
+#define KBD_0                             0x0030
+#define KBD_1                             0x0031
+#define KBD_2                             0x0032
+#define KBD_3                             0x0033
+#define KBD_4                             0x0034
+#define KBD_5                             0x0035
+#define KBD_6                             0x0036
+#define KBD_7                             0x0037
+#define KBD_8                             0x0038
+#define KBD_9                             0x0039
+#define KBD_colon                         0x003a
+#define KBD_semicolon                     0x003b
+#define KBD_less                          0x003c
 #define KBD_equal                         0x003d
-#define KBD_greater                       0x003e  
-#define KBD_question                      0x003f  
-#define KBD_at                            0x0040  
-#define KBD_A                             0x0041  
-#define KBD_B                             0x0042  
-#define KBD_C                             0x0043  
-#define KBD_D                             0x0044  
-#define KBD_E                             0x0045  
-#define KBD_F                             0x0046  
-#define KBD_G                             0x0047  
-#define KBD_H                             0x0048  
-#define KBD_I                             0x0049  
-#define KBD_J                             0x004a  
-#define KBD_K                             0x004b  
-#define KBD_L                             0x004c  
-#define KBD_M                             0x004d  
+#define KBD_greater                       0x003e
+#define KBD_question                      0x003f
+#define KBD_at                            0x0040
+#define KBD_A                             0x0041
+#define KBD_B                             0x0042
+#define KBD_C                             0x0043
+#define KBD_D                             0x0044
+#define KBD_E                             0x0045
+#define KBD_F                             0x0046
+#define KBD_G                             0x0047
+#define KBD_H                             0x0048
+#define KBD_I                             0x0049
+#define KBD_J                             0x004a
+#define KBD_K                             0x004b
+#define KBD_L                             0x004c
+#define KBD_M                             0x004d
 #define KBD_N                             0x004e
 #define KBD_O                             0x004f
 #define KBD_P                             0x0050

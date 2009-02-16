@@ -168,7 +168,7 @@ s32 KEYBOARD_LoadKeyMap(char* name) {
 	unsigned char *map_buf = NULL;
 	struct keymap *map;
 	struct stat st;
-	memset(_manager.keymap, 0, sizeof(struct symbol) * 256);
+	memset(_manager->keymap, 0, sizeof(struct symbol) * 256);
 	snprintf(filename, 1024, "sd:/keymaps/%s.map", name);
 	if (strcmp(name, "default") == 0) {
 		map = &default_map;
@@ -203,7 +203,7 @@ s32 KEYBOARD_LoadKeyMap(char* name) {
 load_map:
 	printf("Loading Keymap: %s\n", map->name);
 	for (i = 0; i < map->map_length; i++) {
-		_manager.keymap[map->symbols[i].scancode] = map->symbols[i];
+		_manager->keymap[map->symbols[i].scancode] = map->symbols[i];
 	}
 	if (map_buf != NULL)
 		free(map_buf);
@@ -238,7 +238,7 @@ s32 KEYBOARD_InitKeyMap()
 */
 u16 KEYBOARD_GetKeySym(u8 scancode, u16 modifiers)
 {
-	struct symbol *ref = &_manager.keymap[scancode];
+	struct symbol *ref = &_manager->keymap[scancode];
 	u16 *group;
 	u8 shift = ((modifiers & KMOD_LSHIFT) || (modifiers & KMOD_RSHIFT));
 	u16 num_lock = modifiers & KMOD_NUM;

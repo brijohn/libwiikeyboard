@@ -7,17 +7,15 @@
 
 #include <ogc/lwp_queue.h>
 
-struct _keyManager
+struct kbd_manager
 {
-	device dev[DEVLIST_MAXSIZE];
-	keyboard key[DEVLIST_MAXSIZE];
+	USBKeyboard kbd;
 	struct symbol keymap[256];
-	u8 num;
 	
-	lwp_queue *queue;
+	lwp_queue queue;
 };
 
-extern struct _keyManager _manager;
+extern struct kbd_manager *_manager;
 
 #ifdef __cplusplus
    }

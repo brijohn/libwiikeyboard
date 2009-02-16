@@ -1,9 +1,11 @@
 /*-------------------------------------------------------------
 
-usbkeyboard.c -- Usb keyboard support(boot protocole)
+usbkeyboard.c -- Usb keyboard support(boot protocol)
 
 Copyright (C) 2008, 2009
 DAVY Guillaume davyg2@gmail.com
+Brian Johnson brijohn@gmail.com
+dhewg
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any
@@ -37,30 +39,42 @@ distribution.
 #include <usbkeyboard.h>
 
 #define	HEAP_SIZE 4096
+#define DEVLIST_MAXSIZE 8
 
 static s32 hId = -1;
 
-//Check if two device are equal
-bool devEqual(device dev1,device dev2)
+//Callback when the keyboard is disconnected
+static s32 _disconnect(s32 retval,void* data)
 {
-	return (dev1.vid==dev2.vid && dev1.pid==dev2.pid);
-}
-
-//Call when the keyboard is disconnected
-s32 _disconnect(s32 retval,void* data)
-{
-	keyboard *key = (keyboard*) data;
+	USBKeyboard *key = (USBKeyboard*) data;
 	key->connect = false;
+
+	if (!key->cb)
+		return 1;
+
+
 	USBKeyboard_event ev;
 	ev.type = USBKEYBOARD_DISCONNECTED;
-	u8 i;
-	for (i=0;i<key->numCB;i++)
-		(*key->cb[i]) (ev,key->cbData[i]);
+
+	key->cb (ev,key->cbData);
+
 	return 1;
 }
 
+static void USBKeyboard_SubmitEvent(USBKeyboard *key, USBKeyboard_eventType type, u8 code)
+{
+	if (!key->cb)
+		return;
+
+	USBKeyboard_event ev;
+	ev.type = type;
+	ev.keyCode = code;
+
+	key->cb (ev,key->cbData);
+}
+
 //init the ioheap
-s32 USBKeyboard_Initialize()
+s32 USBKeyboard_Initialize(void)
 {
 	if(hId > 0)
 		return 0;
@@ -74,22 +88,29 @@ s32 USBKeyboard_Initialize()
 }
 
 //Destroy the io heap
-s32 USBKeyboard_Deinitialize()
+s32 USBKeyboard_Deinitialize(void)
 {
+	if(hId < 0)
+		return -1;
+
 	s32 retval;
 	retval = iosDestroyHeap(hId);
 	hId = -1;
 	return retval;
 }
 
-//Search all the keyboard connected to the wii usb port
+//Search for a keyboard connected to the wii usb port
 //Thanks to Sven Peter usbstorage support
-s32 USBKeyboard_Find(device (*devs)[DEVLIST_MAXSIZE])
+s32 USBKeyboard_Find(u16 *vid, u16 *pid)
 {
 	u8 *buffer;
 	u8 dummy;
 	u8 i;
-	u16 vid, pid;
+	u16 p_vid, p_pid;
+	bool found = false;
+
+	if (!vid || !pid)
+		return -1;
 
 	buffer = memalign(32, DEVLIST_MAXSIZE << 3);
 	if(buffer == NULL)
@@ -102,17 +123,16 @@ s32 USBKeyboard_Find(device (*devs)[DEVLIST_MAXSIZE])
 		return -2;
 	}
 
-	u8 num=0;
 	for(i = 0; i < DEVLIST_MAXSIZE; i++)
 	{
-		memcpy(&vid, (buffer + (i << 3) + 4), 2);
-		memcpy(&pid, (buffer + (i << 3) + 6), 2);
+		p_vid = *((u16 *) (buffer + (i << 3) + 4));
+		p_pid = *((u16 *) (buffer + (i << 3) + 6));
 		
-		if ((vid==0)||(pid==0))
+		if ((p_vid==0)||(p_pid==0))
 			continue;
 		
 		s32 fd=0;
-		if (USB_OpenDevice("oh0",vid,pid,&fd)<0)
+		if (USB_OpenDevice("oh0",p_vid,p_pid,&fd)<0)
 			continue;
 
 		u32 iConf, iInterface;
@@ -128,23 +148,37 @@ s32 USBKeyboard_Find(device (*devs)[DEVLIST_MAXSIZE])
 				uid = &ucd->interfaces[iInterface];
 				if ( (uid->bInterfaceClass == USB_CLASS_HID) && (uid->bInterfaceSubClass == USB_SUBCLASS_BOOT) && (uid->bInterfaceProtocol== USB_PROTOCOL_KEYBOARD))
 				{
-					(*devs)[num].vid = vid;
-					(*devs)[num].pid = pid;
-					num++;
+					*vid = p_vid;
+					*pid = p_pid;
+					found = true;
 					break;
 				}
 			}
+
+			if (found)
+				break;
 		}
 		USB_FreeDescriptors(&udd);
 		USB_CloseDevice(&fd);
 	}
-	return num;
+
+	free(buffer);
+
+	if (found)
+		return 1;
+
+	return 0;
 }
 
-//Open a keyboard from his pid and vid that you can have with USBKeyboard_find
-s32 USBKeyboard_Open(keyboard *key,device dev)
+//Open a keyboard from his pid and vid that you retrieved with USBKeyboard_Find
+s32 USBKeyboard_Open(USBKeyboard *key, u16 vid, u16 pid)
 {
-	if (USB_OpenDevice("oh0",dev.vid,dev.pid,&key->fd)<0)
+	if (!key)
+		return -1;
+
+	key->connect = false;
+
+	if (USB_OpenDevice("oh0",vid,pid,&key->fd)<0)
 		return -1;
 
 	u32 iConf, iInterface, iEp;
@@ -188,12 +222,20 @@ found:
 	
 	u8 conf;
 	
-	if(USB_GetConfiguration(key->fd, &conf) < 0)
+	if(USB_GetConfiguration(key->fd, &conf) < 0) {
+		USBKeyboard_Close(key);
 		return -3;
-	if(conf != key->configuration && USB_SetConfiguration(key->fd, key->configuration) < 0)
+	}
+
+	if(conf != key->configuration && USB_SetConfiguration(key->fd, key->configuration) < 0) {
+		USBKeyboard_Close(key);
 		return -4;
-	if(key->altInterface != 0 && USB_SetAlternativeInterface(key->fd, key->interface, key->altInterface) < 0)
+	}
+
+	if(key->altInterface != 0 && USB_SetAlternativeInterface(key->fd, key->interface, key->altInterface) < 0) {
+		USBKeyboard_Close(key);
 		return -5;
+	}
 	
 	if (USBKeyboard_Get_Protocol(key)!=0)
 	{
@@ -209,27 +251,31 @@ found:
 		}
 	}
 	
-	key->leds = 0;
-	key->dev = dev;
-	key->numCB=0;
-	key->connect = true;
 	if (USB_DeviceRemovalNotifyAsync(key->fd,&_disconnect,key)<0)
 	{
 		USBKeyboard_Close(key);
 		return -8;
 	}
 
+	key->leds = 0;
+	key->vid = vid;
+	key->pid = pid;
+	key->connect = true;
+
 	return 1;
 }
 
 //Close the device
-s32 USBKeyboard_Close(keyboard *key)
+s32 USBKeyboard_Close(USBKeyboard *key)
 {
-	return USB_CloseDevice(&(key->fd));
+	s32 res = USB_CloseDevice(&(key->fd));
+	key->connect = false;
+
+	return res;
 }
 
 //Get the protocol, 0=bout protocol and 1=report protocol
-s32 USBKeyboard_Get_Protocol(keyboard *key)
+s32 USBKeyboard_Get_Protocol(USBKeyboard *key)
 {
 	s32 protocol;
 	u8 *buffer = 0;
@@ -242,14 +288,14 @@ s32 USBKeyboard_Get_Protocol(keyboard *key)
 	return protocol;
 }
 
-//Modifie the protocol, 0=bout protocol and 1=report protocol
-s32 USBKeyboard_Set_Protocol(keyboard *key, u8 protocol)
+//Modify the protocol, 0=bout protocol and 1=report protocol
+s32 USBKeyboard_Set_Protocol(USBKeyboard *key, u8 protocol)
 {
 	return USB_WriteCtrlMsg(key->fd,USB_REQTYPE_SET,USB_REQ_SETPROTOCOL,protocol,0,0,0);
 }
 
-//Get a input report from interrupt pipe
-s32 USBKeyboard_Get_InputReport_Intr(keyboard *key)
+//Get an input report from interrupt pipe
+s32 USBKeyboard_Get_InputReport_Intr(USBKeyboard *key)
 {
 	u8 *buffer = 0;
 	buffer = iosAlloc(hId, 8);
@@ -261,8 +307,8 @@ s32 USBKeyboard_Get_InputReport_Intr(keyboard *key)
 	return ret;
 }
 
-//Get a input report from control pipe
-s32 USBKeyboard_Get_OutputReport_Ctrl(keyboard *key,u8 *leds)
+//Get an input report from control pipe
+s32 USBKeyboard_Get_OutputReport_Ctrl(USBKeyboard *key,u8 *leds)
 {
 	u8 *buffer = 0;
 	buffer = iosAlloc(hId, 1);
@@ -274,8 +320,8 @@ s32 USBKeyboard_Get_OutputReport_Ctrl(keyboard *key,u8 *leds)
 	return ret;
 }
 
-//Set a input report to control pipe
-s32 USBKeyboard_Set_OutputReport_Ctrl(keyboard *key)
+//Set an input report to control pipe
+s32 USBKeyboard_Set_OutputReport_Ctrl(USBKeyboard *key)
 {
 	u8 *buffer = 0;
 	buffer = iosAlloc(hId, 1);
@@ -287,18 +333,8 @@ s32 USBKeyboard_Set_OutputReport_Ctrl(keyboard *key)
 	return ret;
 }
 
-void USBKeyboard_SubmitEvent(keyboard *key, USBKeyboard_eventType type, u8 code)
-{
-	USBKeyboard_event ev;
-	ev.type = type;
-	ev.keyCode = code;
-	u8 i;
-	for (i=0;i<key->numCB;i++)
-		(*key->cb[i]) (ev,key->cbData[i]);
-}
-
-//Get the pressed touch and call the cb fonction
-s32 USBKeyboard_GetState(keyboard *key)
+//Scan for key presses and generate events for the callback function
+s32 USBKeyboard_Scan(USBKeyboard *key)
 {
 	u8 i;
 	u8 bad_message[6] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
@@ -373,26 +409,22 @@ s32 USBKeyboard_GetState(keyboard *key)
 	return 0;
 }
 
-//Put on the led led
-s32 USBKeyboard_PutOnLed(keyboard *key,USBKeyboard_led led)
+//Turn on/off a led
+s32 USBKeyboard_SetLed(USBKeyboard *key, const USBKeyboard_led led, bool on)
 {
-	key->leds = key->leds | (1 << led );
+	if (on)
+		key->leds = key->leds | (1 << led );
+	else
+		key->leds = key->leds & (255 ^ (1 << led));
+
 	if (USBKeyboard_Set_OutputReport_Ctrl(key)<0)
 		return -2;
+
 	return 1;
 }
 
-//Put off the led led
-s32 USBKeyboard_PutOffLed(keyboard *key,USBKeyboard_led led)
-{
-	key->leds = key->leds & (255 ^ (1 << led));
-	if (USBKeyboard_Set_OutputReport_Ctrl(key)<0)
-		return -2;
-	return 1;
-}
-
-//Switch the led led, put on if off or put off if on
-s32 USBKeyboard_SwitchLed(keyboard *key,USBKeyboard_led led)
+//Toggle a led
+s32 USBKeyboard_ToggleLed(USBKeyboard *key, const USBKeyboard_led led)
 {
 	key->leds = key->leds ^ (1 << led);
 	if (USBKeyboard_Set_OutputReport_Ctrl(key)<0)
@@ -400,29 +432,10 @@ s32 USBKeyboard_SwitchLed(keyboard *key,USBKeyboard_led led)
 	return 1;
 }
 
-//Add a callback function who will handlethe keyboard events
-s32 USBKeyboard_Add_EventCB(keyboard* key,eventcallback cb, void* data)
+//Set the callback function which will handle the keyboard events
+void USBKeyboard_SetCB(USBKeyboard* key,eventcallback cb, void* data)
 {
-	if (key->numCB==CBEVENT_MAXNUM)
-		return -1;
-	key->cb[key->numCB] = cb;
-	key->cbData[key->numCB] = data;
-	key->numCB++;
-	return key->numCB;
-}
-
-//Add a callback function who will handlethe keyboard events
-s32 USBKeyboard_Remove_EventCB(keyboard* key,u8 n)
-{
-	if (n>=CBEVENT_MAXNUM)
-		return -1;
-	u8 i;
-	for (i=n;i<key->numCB-1;i++)
-	{
-		key->cb[i] = key->cb[i+1];
-		key->cbData[i] = key->cbData[i+1];
-	}
-	key->numCB--;
-	return key->numCB;
+	key->cb = cb;
+	key->cbData = data;
 }
 

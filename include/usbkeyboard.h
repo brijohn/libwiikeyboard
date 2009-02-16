@@ -1,3 +1,32 @@
+/*-------------------------------------------------------------
+
+usbkeyboard.h -- Usb keyboard support(boot protocol)
+
+Copyright (C) 2008, 2009
+DAVY Guillaume davyg2@gmail.com
+Brian Johnson brijohn@gmail.com
+dhewg
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any
+damages arising from the use of this software.
+
+Permission is granted to anyone to use this software for any
+purpose, including commercial applications, and to alter it and
+redistribute it freely, subject to the following restrictions:
+
+1.	The origin of this software must not be misrepresented; you
+must not claim that you wrote the original software. If you use
+this software in a product, an acknowledgment in the product
+documentation would be appreciated but is not required.
+
+2.	Altered source versions must be plainly marked as such, and
+must not be misrepresented as being the original software.
+
+3.	This notice may not be removed or altered from any source
+distribution.
+
+-------------------------------------------------------------*/
 #ifndef __USBKEYBOARD_H__
 #define __USBKEYBOARD_H__
 
@@ -5,8 +34,6 @@
    extern "C" {
 #endif /* __cplusplus */
 
-#define DEVLIST_MAXSIZE				0x08
-#define CBEVENT_MAXNUM				0x08
 
 #define USB_CLASS_HID				0x03
 #define USB_SUBCLASS_BOOT			0x01
@@ -36,34 +63,28 @@ typedef enum
 	USBKEYBOARD_RELEASED,
 	USBKEYBOARD_DISCONNECTED
 
-}USBKeyboard_eventType;
+} USBKeyboard_eventType;
 
 typedef enum
 {
 	USBKEYBOARD_LEDNUM=0,
 	USBKEYBOARD_LEDCAPS,
 	USBKEYBOARD_LEDSCROLL
-}USBKeyboard_led;
+} USBKeyboard_led;
 
-typedef struct _USBKeyboard_event
+typedef struct
 {
 	USBKeyboard_eventType type;
 	u8 keyCode;
 
-}USBKeyboard_event;
+} USBKeyboard_event;
 
-typedef s32 (*eventcallback)(USBKeyboard_event event,void *usrdata);
+typedef s32 (*eventcallback)(USBKeyboard_event event, void *usrdata);
 
-typedef struct _device
+typedef struct
 {
-	u16 vid,pid;
-}device;
-
-#define DEVNULL (device){0,0}
-
-typedef struct _keyboard
-{
-	device dev;
+	u16 vid;
+	u16 pid;
 	s32 fd;
 
 	bool connect;
@@ -75,9 +96,8 @@ typedef struct _keyboard
 	u8 leds;
 	u16 modifiers;
 	
-	eventcallback cb[CBEVENT_MAXNUM];
-	void* cbData[CBEVENT_MAXNUM];
-	u8 numCB;
+	eventcallback cb;
+	void* cbData;
 
 	u8 configuration;
 	u32 interface;
@@ -86,34 +106,29 @@ typedef struct _keyboard
 	u8 ep;
 	u32 ep_size;
 
-}keyboard;
+} USBKeyboard;
 
-bool devEqual(device dev1,device dev2);
+s32 USBKeyboard_Initialize(void);
+s32 USBKeyboard_Deinitialize(void);
 
-s32 USBKeyboard_Initialize();
-s32 USBKeyboard_Deinitialize();
+s32 USBKeyboard_Find(u16 *vid, u16 *pid);
 
-s32 USBKeyboard_Find(device (*devs)[DEVLIST_MAXSIZE]);
+s32 USBKeyboard_Open(USBKeyboard *key, u16 vid, u16 pid);
+s32 USBKeyboard_Close(USBKeyboard *key);
 
-s32 USBKeyboard_Open(keyboard *key,device dev);
-s32 USBKeyboard_Close(keyboard *key);
+s32 USBKeyboard_Get_Protocol(USBKeyboard *key);
+s32 USBKeyboard_Set_Protocol(USBKeyboard *key, u8 protocol);
 
-s32 USBKeyboard_Get_Protocol(keyboard *key);
-s32 USBKeyboard_Set_Protocol(keyboard *key, u8 protocol);
+s32 USBKeyboard_Get_InputReport_Intr(USBKeyboard *key);
+s32 USBKeyboard_Get_OutputReport_Ctrl(USBKeyboard *key, u8 *leds);
+s32 USBKeyboard_Set_OutputReport_Ctrl(USBKeyboard *key);
 
-s32 USBKeyboard_Get_OutputReport_Ctrl(keyboard *key,u8 *leds);
-s32 USBKeyboard_Set_OutputReport_Ctrl(keyboard *key);
+s32 USBKeyboard_Scan(USBKeyboard *key);
 
-s32 USBKeyboard_Get_InputReport_Intr(keyboard *key);
+s32 USBKeyboard_SetLed(USBKeyboard *key, const USBKeyboard_led led, bool on);
+s32 USBKeyboard_ToggleLed(USBKeyboard *key, const USBKeyboard_led led);
 
-s32 USBKeyboard_GetState(keyboard *key);
-
-s32 USBKeyboard_PutOnLed(keyboard *key,USBKeyboard_led led);
-s32 USBKeyboard_PutOffLed(keyboard *key,USBKeyboard_led led);
-s32 USBKeyboard_SwitchLed(keyboard *key,USBKeyboard_led led);
-
-s32 USBKeyboard_Add_EventCB(keyboard* key,eventcallback cb, void* data);
-s32 USBKeyboard_Remove_EventCB(keyboard* key,u8 n);
+void USBKeyboard_SetCB(USBKeyboard* key, eventcallback cb, void* data);
 
 #ifdef __cplusplus
    }
