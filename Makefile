@@ -18,7 +18,7 @@ include $(DEVKITPPC)/wii_rules
 PLATFORM	:=	wii
 BUILD		:=	wii_release
 SOURCES		:=	libwiikeyboard
-INCLUDES	:=	gc/wiikeyboard
+INCLUDES	:=	gc/wiikeyboard libwiikeyboard
 DATA		:=
 LIBDIR		:=	../lib
 
@@ -68,7 +68,6 @@ export OFILES	:=	$(addsuffix .o,$(BINFILES)) \
 			$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
 			-I$(CURDIR)/$(BUILD) \
 			-I$(LIBOGC_INC)
