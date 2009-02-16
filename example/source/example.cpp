@@ -5,7 +5,7 @@
 #include <gccore.h>
 #include <wiiuse/wpad.h>
 
-#include <libwiikeyboard/keyboard.h>
+#include <wiikeyboard/keyboard.h>
 
 static void *xfb = NULL;
 static GXRModeObj *rmode = NULL;
