@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
 
 	//Init the usb keyboard driver and his interface
 	s32 ret = KEYBOARD_Init();
+	KEYBOARD_EnableKeyRepeat(1);
 	if (ret<0)
 	{
 		printf("Error in KEYBOARD_Init() retcode : %i\n",ret);

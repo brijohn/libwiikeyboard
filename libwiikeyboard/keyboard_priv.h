@@ -7,11 +7,20 @@
 
 #include <ogc/lwp_queue.h>
 
+struct key_repeater {
+	keyboard_event ev;
+	bool enable;
+	s64 repeat_time;
+	u16 repeat_delay;
+};
+
 struct kbd_manager
 {
 	USBKeyboard kbd;
 	struct symbol keymap[256];
 	
+	struct key_repeater repeat;
+
 	lwp_queue queue;
 };
 

@@ -34,6 +34,7 @@ distribution.
 
 #include <gccore.h>
 #include <ogc/usb.h>
+#include <ogc/lwp_watchdog.h>
 
 #include <keyboard.h>
 #include "keyboard_priv.h"
@@ -122,6 +123,16 @@ static s32 _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 		USBKeyboard_ToggleLed(&_manager->kbd, USBKEYBOARD_LEDSCROLL);
 	}
 	event.keysym.mod = kbd->modifiers;
+	if (_manager->repeat.enable) {
+		if (event.type == KEYBOARD_PRESSED) {
+			_manager->repeat.ev = event;
+			_manager->repeat.repeat_time = ticks_to_millisecs(gettime()) + 400;
+		} else if (event.type == KEYBOARD_RELEASED) {
+			if (event.keysym.scancode == _manager->repeat.ev.keysym.scancode) {
+				_manager->repeat.ev.keysym.scancode = 0;
+			}
+		}
+	}
 	_kbd_addEvent(event);
 	return 1;
 }
@@ -207,6 +218,9 @@ s32 KEYBOARD_Init(void)
 		return -3;
 	}
 
+	KEYBOARD_SetKeyDelay(100);
+	KEYBOARD_EnableKeyRepeat(0);
+
 	if (!_kbd_thread_running) {
 		// start the keyboard thread
 		_kbd_thread_quit = false;
@@ -272,8 +286,19 @@ s32 KEYBOARD_GetEvent(keyboard_event *event)
 		return -1;
 	node *n = (node*) __lwp_queue_get(&_manager->queue);
 
-	if (!n)
+	if (!n) {
+		if (_manager->repeat.enable) {
+			s64 time = ticks_to_millisecs(gettime());
+			if (_manager->repeat.ev.keysym.scancode != 0 &&
+			    _manager->repeat.repeat_time < time) {
+				*event = _manager->repeat.ev;
+				_manager->repeat.repeat_time =
+					time + _manager->repeat.repeat_delay;
+				return 1;
+			}
+		}
 		return 0;
+	}
 
 	*event = n->event;
 
@@ -303,6 +328,20 @@ s32 KEYBOARD_FlushEvents(void)
 	}
 
 	return res;
+}
+
+s32 KEYBOARD_EnableKeyRepeat(bool enable)
+{
+	if(_manager)
+		_manager->repeat.enable = enable;
+	return 0;
+}
+
+s32 KEYBOARD_SetKeyDelay(u16 delay)
+{
+	if(_manager)
+		_manager->repeat.repeat_delay = delay;
+	return 0;
 }
 
 //Turn on/off a led
