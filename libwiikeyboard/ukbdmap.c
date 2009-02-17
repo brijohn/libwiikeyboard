@@ -86,7 +86,7 @@ static const keysym_t ukbd_keydesc_us[] = {
     KC(39),	KS_0,		KS_parenright,
     KC(40),	KS_Return,
     KC(41),	KS_Cmd_Debugger,KS_Escape,
-    KC(42),	KS_Cmd_ResetEmul,KS_Delete,
+    KC(42),	KS_Cmd_ResetEmul,KS_BackSpace,
     KC(43),	KS_Tab,
     KC(44),	KS_space,
     KC(45),	KS_minus,	KS_underscore,

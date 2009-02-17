@@ -272,7 +272,7 @@ static void _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 		}
 	}
 
-	//printf("cmd=%x %x,%x | %x,%x -> %x \n", kp.command, kp.group1[0], kp.group1[1], kp.group2[0], kp.group2[1], event.symbol);
+	//printf("cmd=%x: code=%x, %x,%x | %x,%x -> %x \n", kp.command, event.keycode, kp.group1[0], kp.group1[1], kp.group2[0], kp.group2[1], event.symbol);
 
 	_kbd_addEvent(&event);
 
