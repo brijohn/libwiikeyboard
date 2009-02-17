@@ -28,8 +28,12 @@ distribution.
 
 -------------------------------------------------------------*/
 
-#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <malloc.h>
+#include <ctype.h>
+#include <string.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -51,6 +55,19 @@ static struct wskbd_mapdata _ukbd_keymapdata = {
 	KB_NONE
 };
 
+struct nameint {
+	int value;
+	char *name;
+};
+
+static struct nameint kbdenc_tab[] = {
+	KB_ENCTAB
+};
+
+static struct nameint kbdvar_tab[] = {
+	KB_VARTAB
+};
+
 static int _sc_maplen = 0;					/* number of entries in sc_map */
 static struct wscons_keymap *_sc_map = 0;	/* current translation map */
 
@@ -63,6 +80,49 @@ typedef struct {
 	lwp_node node;
 	keyboard_event event;
 } _node;
+
+static kbd_t _get_keymap_by_name(const char *identifier) {
+	char name[64];
+	u8 i, j;
+	kbd_t encoding, variant;
+
+	kbd_t res = KB_NONE;
+
+	if (!identifier || (strlen(identifier) < 2))
+		return res;
+
+	i = 0;
+	for (i = 0; ukbd_keydesctab[i].name != 0; ++i) {
+		if (ukbd_keydesctab[i].name & KB_HANDLEDBYWSKBD)
+			continue;
+
+		encoding = KB_ENCODING(ukbd_keydesctab[i].name);
+		variant = KB_VARIANT(ukbd_keydesctab[i].name);
+
+		name[0] = 0;
+		for (j = 0; j < sizeof(kbdenc_tab) / sizeof(struct nameint); ++j)
+			if (encoding == kbdenc_tab[j].value) {
+				strcpy(name, kbdenc_tab[j].name);
+				break;
+			}
+
+		if (strlen(name) < 1)
+			continue;
+
+		for (j = 0; j < sizeof(kbdvar_tab) / sizeof(struct nameint); ++j)
+			if (variant & kbdvar_tab[j].value) {
+				strcat(name, "-");
+				strcat(name,  kbdvar_tab[j].name);
+			}
+
+		if (!strcmp(identifier, name)) {
+			res = ukbd_keydesctab[i].name;
+			break;
+		}
+	}
+
+	return res;
+}
 
 #define KBD_THREAD_STACKSIZE (1024 * 4)
 #define KBD_THREAD_PRIO 64
@@ -282,6 +342,11 @@ static void * _kbd_thread_func(void *arg) {
 //Initialize USB and USB_KEYBOARD and the event queue
 s32 KEYBOARD_Init(void)
 {
+	int fd;
+	struct stat st;
+	char keymap[64];
+	size_t i;
+
 	if (USB_Initialize() != IPC_OK)
 		return -1;
 
@@ -299,7 +364,27 @@ s32 KEYBOARD_Init(void)
 		memset(_kbd, 0, sizeof(USBKeyboard));
 
 		if (_ukbd_keymapdata.layout == KB_NONE) {
-			//TODO: get the country code from the hid descriptor instead
+			keymap[0] = 0;
+			fd = open("/wiikbd.map", O_RDONLY);
+
+			if (fd > 0) {
+				fstat(fd, &st);
+
+				if ((st.st_size > 0) && (st.st_size <= 64) &&
+					(st.st_size == read(fd, keymap, st.st_size))) {
+					for (i = 0; i < 64; ++i) {
+						if ((keymap[i] != '-') && (isalpha(keymap[i]) == 0)) {
+							keymap[i] = 0;
+							break;
+						}
+					}
+				}
+
+				close(fd);
+			}
+
+			_ukbd_keymapdata.layout = _get_keymap_by_name(keymap);
+
 			switch (CONF_GetLanguage()) {
 			case CONF_LANG_GERMAN:
 				_ukbd_keymapdata.layout = KB_DE | KB_NODEAD;
