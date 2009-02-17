@@ -34,7 +34,6 @@ distribution.
 #include <ctype.h>
 #include <string.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <unistd.h>
 
 #include <gccore.h>
@@ -74,6 +73,17 @@ static struct wscons_keymap *_sc_map = 0;	/* current translation map */
 static USBKeyboard *_kbd = NULL;
 static u16 _modifiers;
 
+static int _composelen;		/* remaining entries in _composebuf */
+static keysym_t _composebuf[2];
+
+typedef struct {
+	u8 keycode;
+	u16 symbol;
+} _keyheld;
+
+#define MAXHELD 8
+static _keyheld _held[MAXHELD];
+	
 static lwp_queue _queue;
 
 typedef struct {
@@ -164,6 +174,8 @@ static void _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 	struct wscons_keymap kp;
 	keysym_t *group;
 	int gindex;
+	keysym_t ksym;
+	int i;
 
 	switch (kevent.type) {
 	case USBKEYBOARD_DISCONNECTED:
@@ -189,10 +201,10 @@ static void _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 	}
 
 	event.keycode = kevent.keyCode;
-	event.modifiers = _modifiers;
 
 	wskbd_get_mapentry(&_ukbd_keymapdata, event.keycode, &kp);
 
+	/* Now update modifiers */
 	switch (kp.group1[0]) {
 	case KS_Shift_L:
 		update_modifier(event.type, 0, MOD_SHIFT_L);
@@ -259,20 +271,95 @@ static void _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 	if ((_modifiers & MOD_NUMLOCK) &&
 	    KS_GROUP(group[1]) == KS_GROUP_Keypad) {
 		gindex = !MOD_ONESET(_modifiers, MOD_ANYSHIFT);
-		event.symbol = group[gindex];
+		ksym = group[gindex];
 	} else {
 		/* CAPS alone should only affect letter keys */
 		if ((_modifiers & (MOD_CAPSLOCK | MOD_ANYSHIFT)) ==
 		    MOD_CAPSLOCK) {
 			gindex = 0;
-			event.symbol = ksym_upcase(group[0]);
+			ksym = ksym_upcase(group[0]);
 		} else {
 			gindex = MOD_ONESET(_modifiers, MOD_ANYSHIFT);
-			event.symbol = group[gindex];
+			ksym = group[gindex];
 		}
 	}
 
-	//printf("cmd=%x: code=%x, %x,%x | %x,%x -> %x \n", kp.command, event.keycode, kp.group1[0], kp.group1[1], kp.group2[0], kp.group2[1], event.symbol);
+	/* Process compose sequence and dead accents */
+	switch (KS_GROUP(ksym)) {
+	case KS_GROUP_Mod:
+		if (ksym == KS_Multi_key) {
+			update_modifier(KEYBOARD_PRESSED, 0, MOD_COMPOSE);
+			_composelen = 2;
+		}
+		break;
+
+	case KS_GROUP_Dead:
+		if (event.type != KEYBOARD_PRESSED)
+			return;
+
+		if (_composelen == 0) {
+			update_modifier(KEYBOARD_PRESSED, 0, MOD_COMPOSE);
+			_composelen = 1;
+			_composebuf[0] = ksym;
+
+			return;
+		}
+		break;
+	}
+
+	if ((event.type == KEYBOARD_PRESSED) && (_composelen > 0)) {
+		/*
+		 * If the compose key also serves as AltGr (i.e. set to both
+		 * KS_Multi_key and KS_Mode_switch), and would provide a valid,
+		 * distinct combination as AltGr, leave compose mode.
+		 */
+		if (_composelen == 2 && group == &kp.group2[0]) {
+			if (kp.group1[gindex] != kp.group2[gindex])
+				_composelen = 0;
+		}
+
+		if (_composelen != 0) {
+			_composebuf[2 - _composelen] = ksym;
+			if (--_composelen == 0) {
+				ksym = wskbd_compose_value(_composebuf);
+				update_modifier(KEYBOARD_RELEASED, 0, MOD_COMPOSE);
+			} else {
+				return;
+			}
+		}
+	}
+
+	// store up to MAXHELD pressed events to match the symbol for release
+	switch (KS_GROUP(ksym)) {
+	case KS_GROUP_Ascii:
+	case KS_GROUP_Keypad:
+	case KS_GROUP_Function:
+		if (event.type == KEYBOARD_PRESSED) {
+			for (i = 0; i < MAXHELD; ++i) {
+				if (_held[i].keycode == 0) {
+					_held[i].keycode = event.keycode;
+					_held[i].symbol = ksym;
+
+					break;
+				}
+			}
+		} else {
+			for (i = 0; i < MAXHELD; ++i) {
+				if (_held[i].keycode == event.keycode) {
+					ksym = _held[i].symbol;
+					_held[i].keycode = 0;
+					_held[i].symbol = 0;
+
+					break;
+				}
+			}
+		}
+
+		break;
+	}
+
+	event.symbol = ksym;
+	event.modifiers = _modifiers;
 
 	_kbd_addEvent(&event);
 
@@ -297,6 +384,8 @@ static s32 _kbd_scan_for_keyboard(void)
 		return ret;
 
 	_modifiers = 0;
+	_composelen = 0;
+	memset(_held, 0, sizeof(_held));
 
 	USBKeyboard_SetCB(_kbd, &_kbd_event_cb, NULL);
 
