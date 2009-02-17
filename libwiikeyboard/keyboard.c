@@ -367,11 +367,10 @@ s32 KEYBOARD_Init(void)
 			keymap[0] = 0;
 			fd = open("/wiikbd.map", O_RDONLY);
 
-			if (fd > 0) {
-				fstat(fd, &st);
-
-				if ((st.st_size > 0) && (st.st_size <= 64) &&
+			if ((fd > 0) && !fstat(fd, &st)) {
+				if ((st.st_size > 0) && (st.st_size < 64) &&
 					(st.st_size == read(fd, keymap, st.st_size))) {
+					keymap[63] = 0;
 					for (i = 0; i < 64; ++i) {
 						if ((keymap[i] != '-') && (isalpha(keymap[i]) == 0)) {
 							keymap[i] = 0;
@@ -384,7 +383,9 @@ s32 KEYBOARD_Init(void)
 			}
 
 			_ukbd_keymapdata.layout = _get_keymap_by_name(keymap);
+		}
 
+		if (_ukbd_keymapdata.layout == KB_NONE) {
 			switch (CONF_GetLanguage()) {
 			case CONF_LANG_GERMAN:
 				_ukbd_keymapdata.layout = KB_DE | KB_NODEAD;
@@ -417,14 +418,14 @@ s32 KEYBOARD_Init(void)
 				_ukbd_keymapdata.layout = KB_US;
 				break;
 			}
+		}
 
-			if (wskbd_load_keymap(&_ukbd_keymapdata, &_sc_map, &_sc_maplen) < 0) {
-				free(_kbd);
-				_kbd = NULL;
-				_ukbd_keymapdata.layout = KB_NONE;
+		if (wskbd_load_keymap(&_ukbd_keymapdata, &_sc_map, &_sc_maplen) < 0) {
+			free(_kbd);
+			_kbd = NULL;
+			_ukbd_keymapdata.layout = KB_NONE;
 
-				return -4;
-			}
+			return -4;
 		}
 
 		__lwp_queue_initialize(&_queue, 0, 0, 0);
