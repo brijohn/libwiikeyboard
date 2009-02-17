@@ -76,7 +76,7 @@ typedef struct
 	u8 keyCode;
 } USBKeyboard_event;
 
-typedef s32 (*eventcallback)(USBKeyboard_event event, void *usrdata);
+typedef void (*eventcallback)(USBKeyboard_event event, void *usrdata);
 
 typedef struct
 {
@@ -91,7 +91,6 @@ typedef struct
 	u8 oldState;
 
 	u8 leds;
-	u16 modifiers;
 	
 	eventcallback cb;
 	void* cbData;

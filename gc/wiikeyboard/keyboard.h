@@ -31,51 +31,58 @@ distribution.
 #ifndef __KEYBOARD_H__
 #define __KEYBOARD_H__
 
+#include "wsksymdef.h"
+
+#define MOD_SHIFT_L		(1 << 0)
+#define MOD_SHIFT_R		(1 << 1)
+#define MOD_SHIFTLOCK		(1 << 2)
+#define MOD_CAPSLOCK		(1 << 3)
+#define MOD_CONTROL_L		(1 << 4)
+#define MOD_CONTROL_R		(1 << 5)
+#define MOD_META_L		(1 << 6)
+#define MOD_META_R		(1 << 7)
+#define MOD_MODESHIFT		(1 << 8)
+#define MOD_NUMLOCK		(1 << 9)
+#define MOD_COMPOSE		(1 << 10)
+#define MOD_HOLDSCREEN		(1 << 11)
+#define MOD_COMMAND		(1 << 12)
+#define MOD_COMMAND1		(1 << 13)
+#define MOD_COMMAND2		(1 << 14)
+#define MOD_MODELOCK		(1 << 15)
+
+#define MOD_ANYSHIFT		(MOD_SHIFT_L | MOD_SHIFT_R | MOD_SHIFTLOCK)
+#define MOD_ANYCONTROL		(MOD_CONTROL_L | MOD_CONTROL_R)
+#define MOD_ANYMETA		(MOD_META_L | MOD_META_R)
+
+#define MOD_ONESET(val, mask)	(((val) & (mask)) != 0)
+#define MOD_ALLSET(val, mask)	(((val) & (mask)) == (mask))
+
 #ifdef __cplusplus
    extern "C" {
 #endif /* __cplusplus */
 
-#include <wiikeyboard/usbkeyboard.h>
-
-#include "keyboard_keysym.h"
-
-typedef enum
-{
-	KEYBOARD_PRESSED = 0,
-	KEYBOARD_RELEASED,
+typedef enum {
+	KEYBOARD_CONNECTED,
 	KEYBOARD_DISCONNECTED,
-	KEYBOARD_CONNECTED
+	KEYBOARD_PRESSED,
+	KEYBOARD_RELEASED
 } keyboard_event_type;
 
-typedef struct _keyboard_keysym
-{
-	u8 scancode;
-	u16 sym;
-	KEYBOARD_MOD mod;
-} keyboard_keysym;
-
-typedef struct _KeyboardEvent{
+typedef struct {
 	keyboard_event_type type;
-	keyboard_keysym keysym;
+	u16 modifiers;
+	u8 keycode;
+	u16 symbol;
 } keyboard_event;
 
-typedef enum
-{
-	KEYBOARD_LEDNUM=0,
+typedef enum {
+	KEYBOARD_LEDNUM = 0,
 	KEYBOARD_LEDCAPS,
 	KEYBOARD_LEDSCROLL
 } keyboard_led;
 
-typedef enum
-{
-	KEYBOARD_KEYMAP_US,
-	KEYBOARD_KEYMAP_DE
-} keyboard_keymap;
-
 s32 KEYBOARD_Init(void);
 s32 KEYBOARD_Deinit(void);
-
-s32 KEYBOARD_LoadKeyMap(const keyboard_keymap keymap);
 
 s32 KEYBOARD_GetEvent(keyboard_event *event);
 s32 KEYBOARD_FlushEvents(void);

@@ -54,7 +54,8 @@ static s32 _disconnect(s32 retval,void* data)
 	USBKeyboard_event ev;
 	ev.type = USBKEYBOARD_DISCONNECTED;
 
-	key->cb (ev,key->cbData);
+	key->cb(ev,key->cbData);
+
 	return 1;
 }
 
@@ -67,7 +68,7 @@ static void USBKeyboard_SubmitEvent(USBKeyboard *key, USBKeyboard_eventType type
 	ev.type = type;
 	ev.keyCode = code;
 
-	key->cb (ev,key->cbData);
+	key->cb(ev,key->cbData);
 }
 
 //init the ioheap
@@ -176,7 +177,7 @@ s32 USBKeyboard_Open(USBKeyboard *key, u16 vid, u16 pid)
 
 	key->connect = false;
 
-	if (USB_OpenDevice("oh0",vid,pid,&key->fd) < 0)
+	if (USB_OpenDevice("oh0", vid ,pid, &key->fd) < 0)
 		return -1;
 
 	u32 iConf, iInterface, iEp;
