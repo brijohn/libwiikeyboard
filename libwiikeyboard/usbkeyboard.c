@@ -35,8 +35,19 @@ distribution.
 
 #include <wiikeyboard/usbkeyboard.h>
 
-#define	HEAP_SIZE 4096
-#define DEVLIST_MAXSIZE 8
+#define	HEAP_SIZE					4096
+#define DEVLIST_MAXSIZE				8
+#define KEY_ERROR					0x01
+#define MAXKEYCODE					6
+
+#define USB_MOD_CTRL_L				0x01
+#define USB_MOD_SHIFT_L				0x02
+#define USB_MOD_ALT_L				0x04
+#define USB_MOD_META_L				0x08
+#define USB_MOD_CTRL_R				0x10
+#define USB_MOD_SHIFT_R				0x20
+#define USB_MOD_ALT_R				0x40
+#define USB_MOD_META_R				0x80
 
 #define USB_CLASS_HID				0x03
 #define USB_SUBCLASS_BOOT			0x01
@@ -54,14 +65,18 @@ distribution.
 #define USB_REQTYPE_GET				0xA1
 #define USB_REQTYPE_SET				0x21
 
+struct ukbd_data {
+	u16	modifiers;
+	u8	keycode[MAXKEYCODE];
+} ATTRIBUTE_PACKED;
+
 struct ukbd {
 	bool connected;
 
 	s32 fd;
 	
-	u8 keyNew[8];
-	u8 keyOld[8];
-	u8 oldState;
+	struct ukbd_data sc_ndata;
+	struct ukbd_data sc_odata;
 
 	u8 leds;
 	
@@ -77,6 +92,19 @@ struct ukbd {
 
 static s32 hId = -1;
 static struct ukbd *_kbd;
+
+static u8 _ukbd_mod_map[][2] = {
+	{ USB_MOD_CTRL_L, 224 },
+	{ USB_MOD_SHIFT_L, 225 },
+	{ USB_MOD_ALT_L, 226 },
+	{ USB_MOD_META_L, 227 },
+	{ USB_MOD_CTRL_R, 228 },
+	{ USB_MOD_SHIFT_R, 229 },
+	{ USB_MOD_ALT_R, 230 },
+	{ USB_MOD_META_R, 231 }
+};
+
+#define MODMAPSIZE (sizeof(_ukbd_mod_map)/sizeof(_ukbd_mod_map[0]))
 
 static void _submit(USBKeyboard_eventType type, u8 code)
 {
@@ -139,8 +167,10 @@ static s32 _get_input_report(void)
 
 	s32 ret = USB_ReadIntrMsg(_kbd->fd, _kbd->ep, 8, buffer);
 
-	memcpy(_kbd->keyNew,buffer, 8);
+	memcpy(&_kbd->sc_ndata, buffer, 8);
 	iosFree(hId, buffer);
+
+	_kbd->sc_ndata.modifiers = (_kbd->sc_ndata.modifiers << 8) | (_kbd->sc_ndata.modifiers >> 8);
 
 	return ret;
 }
@@ -251,7 +281,7 @@ s32 USBKeyboard_Open(const eventcallback cb)
 		vid = *((u16 *) (buffer + (i << 3) + 4));
 		pid = *((u16 *) (buffer + (i << 3) + 6));
 		
-		if ((vid==0) || (pid==0))
+		if ((vid == 0) || (pid == 0))
 			continue;
 		
 		s32 fd = 0;
@@ -365,7 +395,7 @@ s32 USBKeyboard_Open(const eventcallback cb)
 }
 
 //Close the device
-void USBKeyboard_Close()
+void USBKeyboard_Close(void)
 {
 	if (!_kbd)
 		return;
@@ -386,10 +416,9 @@ bool USBKeyboard_IsConnected(void) {
 }
 
 //Scan for key presses and generate events for the callback function
-s32 USBKeyboard_Scan()
+s32 USBKeyboard_Scan(void)
 {
-	u8 i;
-	u8 bad_message[6] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+	int i, j, index;
 
 	if (!_kbd)
 		return -1;
@@ -397,72 +426,51 @@ s32 USBKeyboard_Scan()
 	if (_get_input_report() < 0)
 		return -2;
 
-	if (memcmp(_kbd->keyNew + 2, bad_message, 6) == 0)
+	if (_kbd->sc_ndata.keycode[0] == KEY_ERROR)
 		return 0;
 
-	if(_kbd->keyNew[0] != _kbd->oldState) {
-		if ((_kbd->keyNew[0] & 0x02) && !(_kbd->oldState & 0x02)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe1);
-		} else if ((_kbd->oldState & 0x02) && !(_kbd->keyNew[0] & 0x02)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe1);
-		}
-
-		if ((_kbd->keyNew[0] & 0x20) && !(_kbd->oldState & 0x20)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe5);
-		} else if ((_kbd->oldState & 0x20) && !(_kbd->keyNew[0] & 0x20)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe5);
-		}
-
-		if ((_kbd->keyNew[0] & 0x01) && !(_kbd->oldState & 0x01)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe0);
-		} else if ((_kbd->oldState & 0x01) && !(_kbd->keyNew[0] & 0x01)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe0);
-		}
-
-		if ((_kbd->keyNew[0] & 0x10) && !(_kbd->oldState & 0x10)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe4);
-		} else if ((_kbd->oldState & 0x10) && !(_kbd->keyNew[0] & 0x10)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe4);
-		}
-
-		if ((_kbd->keyNew[0] & 0x04) && !(_kbd->oldState & 0x04)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe2);
-		} else if ((_kbd->oldState & 0x04) && !(_kbd->keyNew[0] & 0x04)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe2);
-		}
-
-		if ((_kbd->keyNew[0] & 0x40) && !(_kbd->oldState & 0x40)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe6);
-		} else if ((_kbd->oldState & 0x40) && !(_kbd->keyNew[0] & 0x40)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe6);
-		}
-
-		if ((_kbd->keyNew[0] & 0x08) && !(_kbd->oldState & 0x08)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe3);
-		} else if ((_kbd->oldState & 0x08) && !(_kbd->keyNew[0] & 0x08)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe3);
-		}
-
-		if ((_kbd->keyNew[0] & 0x80) && !(_kbd->oldState & 0x80)) {
-			_submit(USBKEYBOARD_PRESSED, 0xe7);
-		} else if ((_kbd->oldState & 0x80) && !(_kbd->keyNew[0] & 0x80)) {
-			_submit(USBKEYBOARD_RELEASED, 0xe7);
+	if (_kbd->sc_ndata.modifiers != _kbd->sc_odata.modifiers) {
+		for (i = 0; i < MODMAPSIZE; ++i) {
+			if ((_kbd->sc_odata.modifiers & _ukbd_mod_map[i][0])
+				&& !(_kbd->sc_ndata.modifiers & _ukbd_mod_map[i][0]))
+				_submit(USBKEYBOARD_RELEASED, _ukbd_mod_map[i][1]);
+			else if ((_kbd->sc_ndata.modifiers & _ukbd_mod_map[i][0])
+				&& !(_kbd->sc_odata.modifiers & _ukbd_mod_map[i][0]))
+				_submit(USBKEYBOARD_PRESSED, _ukbd_mod_map[i][1]);
 		}
 	}
-	for (i = 2; i < 8; i++)
-	{
-		if (_kbd->keyOld[i] > 3 && memchr(_kbd->keyNew + 2, _kbd->keyOld[i], 6) == NULL)
-		{
-			_submit(USBKEYBOARD_RELEASED, _kbd->keyOld[i]);
+		
+	for (i = 0; i < MAXKEYCODE; i++) {
+		if (_kbd->sc_odata.keycode[i] > 3) {
+			index = -1;
+
+			for (j = 0; j < MAXKEYCODE; j++) {
+				if (_kbd->sc_odata.keycode[i] == _kbd->sc_ndata.keycode[j]) {
+					index = j;
+					break;
+				}
+			}
+
+			if (index == -1)
+				_submit(USBKEYBOARD_RELEASED, _kbd->sc_odata.keycode[i]);
 		}
-		if (_kbd->keyNew[i] > 3 && memchr(_kbd->keyOld + 2, _kbd->keyNew[i], 6) == NULL)
-		{
-			_submit(USBKEYBOARD_PRESSED, _kbd->keyNew[i]);
+
+		if (_kbd->sc_ndata.keycode[i] > 3) {
+			index = -1;
+
+			for (j = 0; j < MAXKEYCODE; j++) {
+				if (_kbd->sc_ndata.keycode[i] == _kbd->sc_odata.keycode[j]) {
+					index = j;
+					break;
+				}
+			}
+
+			if (index == -1)
+				_submit(USBKEYBOARD_PRESSED, _kbd->sc_ndata.keycode[i]);
 		}
 	}
 
-	memcpy(_kbd->keyOld, _kbd->keyNew, 8);
-	_kbd->oldState = _kbd->keyNew[0];
+	_kbd->sc_odata = _kbd->sc_ndata;
 
 	return 0;
 }
