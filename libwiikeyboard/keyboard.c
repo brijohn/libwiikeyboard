@@ -458,7 +458,7 @@ s32 KEYBOARD_Init(void)
 	if (_ukbd_keymapdata.layout == KB_NONE) {
 		switch (CONF_GetLanguage()) {
 		case CONF_LANG_GERMAN:
-			_ukbd_keymapdata.layout = KB_DE | KB_NODEAD;
+			_ukbd_keymapdata.layout = KB_DE;
 			break;
 
 		case CONF_LANG_JAPANESE:
@@ -478,7 +478,7 @@ s32 KEYBOARD_Init(void)
 			break;
 
 		case CONF_LANG_DUTCH:
-			_ukbd_keymapdata.layout = KB_NL | KB_NODEAD;
+			_ukbd_keymapdata.layout = KB_NL;
 			break;
 
 		case CONF_LANG_SIMP_CHINESE:
