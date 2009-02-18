@@ -371,7 +371,7 @@ static s32 _kbd_scan_for_keyboard(void)
 	s32 ret;
 	keyboard_event event;
 
-	ret = USBKeyboard_Open();
+	ret = USBKeyboard_Open(&_kbd_event_cb);
 
 	if (ret < 0)
 		return ret;
@@ -379,8 +379,6 @@ static s32 _kbd_scan_for_keyboard(void)
 	_modifiers = 0;
 	_composelen = 0;
 	memset(_held, 0, sizeof(_held));
-
-	USBKeyboard_SetCB(&_kbd_event_cb);
 
 	USBKeyboard_SetLed(USBKEYBOARD_LEDNUM, true);
 	USBKeyboard_SetLed(USBKEYBOARD_LEDCAPS, true);
