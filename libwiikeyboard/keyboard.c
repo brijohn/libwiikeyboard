@@ -369,16 +369,10 @@ static void _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 //This function call usb function to check if a new keyboard is connected
 static s32 _kbd_scan_for_keyboard(void)
 {
-	u16 vid, pid;
 	s32 ret;
 	keyboard_event event;
 
-	ret = USBKeyboard_Find(&vid, &pid);
-
-	if (ret < 1)
-		return ret;
-	
-	ret = USBKeyboard_Open(_kbd, vid, pid);
+	ret = USBKeyboard_Open(_kbd);
 
 	if (ret < 0)
 		return ret;
@@ -409,17 +403,15 @@ static s32 _kbd_scan_for_keyboard(void)
 static void * _kbd_thread_func(void *arg) {
 	u32 turns = 0;
 
-	_kbd_scan_for_keyboard();
-
 	while (!_kbd_thread_quit) {
 		// scan for new attached keyboards
-		turns++;
-		if (turns % (KBD_THREAD_KBD_SCAN_INTERVAL) == 0) {
+		if ((turns % KBD_THREAD_KBD_SCAN_INTERVAL) == 0) {
 			if (!_kbd->connect)
 				_kbd_scan_for_keyboard();
 
 			turns = 0;
 		}
+		turns++;
 
 		USBKeyboard_Scan(_kbd);
 		usleep(KBD_THREAD_UDELAY);

@@ -38,12 +38,6 @@ distribution.
 #define USB_SUBCLASS_BOOT			0x01
 #define USB_PROTOCOL_KEYBOARD		0x01
 
-#define USB_ENPOINT_INTERRUPT		0x03
-
-#define USB_DT_HID					0x21
-#define USB_DT_HID_SIZE				0x09
-#define USB_DT_REPORT				0x22
-
 #define USB_REQ_GETPROTOCOL			0x03
 #define USB_REQ_SETPROTOCOL			0x0B
 #define USB_REQ_GETREPORT			0x01
@@ -107,9 +101,7 @@ typedef struct
 s32 USBKeyboard_Initialize(void);
 s32 USBKeyboard_Deinitialize(void);
 
-s32 USBKeyboard_Find(u16 *vid, u16 *pid);
-
-s32 USBKeyboard_Open(USBKeyboard *key, u16 vid, u16 pid);
+s32 USBKeyboard_Open(USBKeyboard *key);
 s32 USBKeyboard_Close(USBKeyboard *key);
 
 s32 USBKeyboard_Get_Protocol(USBKeyboard *key);

@@ -27,8 +27,6 @@ distribution.
 
 -------------------------------------------------------------*/
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
 
@@ -99,20 +97,27 @@ s32 USBKeyboard_Deinitialize(void)
 
 //Search for a keyboard connected to the wii usb port
 //Thanks to Sven Peter usbstorage support
-s32 USBKeyboard_Find(u16 *vid, u16 *pid)
+s32 USBKeyboard_Open(USBKeyboard *key)
 {
 	u8 *buffer;
 	u8 dummy;
 	u8 i;
-	u16 p_vid, p_pid;
+	u16 vid, pid;
 	bool found = false;
+	u32 iConf, iInterface, iEp;
+	usb_devdesc udd;
+	usb_configurationdesc *ucd;
+	usb_interfacedesc *uid;
+	usb_endpointdesc *ued;
+	u8 conf;
 
-	if (!vid || !pid)
+	if (!key)
 		return -1;
 
 	buffer = memalign(32, DEVLIST_MAXSIZE << 3);
 	if(buffer == NULL)
 		return -1;
+
 	memset(buffer, 0, DEVLIST_MAXSIZE << 3);
 
 	if (USB_GetDeviceList("/dev/usb/oh0", buffer, DEVLIST_MAXSIZE, 0, &dummy) < 0)
@@ -121,36 +126,60 @@ s32 USBKeyboard_Find(u16 *vid, u16 *pid)
 		return -2;
 	}
 
-	for(i = 0; i < DEVLIST_MAXSIZE; i++)
+	USBKeyboard_Close(key);
+
+	for (i = 0; i < DEVLIST_MAXSIZE; i++)
 	{
-		p_vid = *((u16 *) (buffer + (i << 3) + 4));
-		p_pid = *((u16 *) (buffer + (i << 3) + 6));
+		vid = *((u16 *) (buffer + (i << 3) + 4));
+		pid = *((u16 *) (buffer + (i << 3) + 6));
 		
-		if ((p_vid==0) || (p_pid==0))
+		if ((vid==0) || (pid==0))
 			continue;
 		
-		s32 fd=0;
-		if (USB_OpenDevice("oh0",p_vid,p_pid,&fd) < 0)
+		s32 fd = 0;
+		if (USB_OpenDevice("oh0", vid, pid, &fd) < 0)
 			continue;
 
-		u32 iConf, iInterface;
-		usb_devdesc udd;
-		usb_configurationdesc *ucd;
-		usb_interfacedesc *uid;
 		USB_GetDescriptors(fd, &udd);
 		for(iConf = 0; iConf < udd.bNumConfigurations; iConf++)
 		{
-			ucd = &udd.configurations[iConf];		
+			ucd = &udd.configurations[iConf];
+
 			for(iInterface = 0; iInterface < ucd->bNumInterfaces; iInterface++)
 			{
 				uid = &ucd->interfaces[iInterface];
-				if ( (uid->bInterfaceClass == USB_CLASS_HID) && (uid->bInterfaceSubClass == USB_SUBCLASS_BOOT) && (uid->bInterfaceProtocol== USB_PROTOCOL_KEYBOARD))
+
+				if ((uid->bInterfaceClass == USB_CLASS_HID) &&
+					(uid->bInterfaceSubClass == USB_SUBCLASS_BOOT) &&
+					(uid->bInterfaceProtocol== USB_PROTOCOL_KEYBOARD))
 				{
-					*vid = p_vid;
-					*pid = p_pid;
-					found = true;
-					break;
+					for(iEp = 0; iEp < uid->bNumEndpoints; iEp++)
+					{
+						ued = &uid->endpoints[iEp];
+
+						if (ued->bmAttributes != USB_ENPOINT_INTERRUPT)
+							continue;
+
+						if (!(ued->bEndpointAddress & USB_ENDPOINT_IN))
+							continue;
+
+						key->fd = fd;
+						key->vid = vid;
+						key->pid = pid;
+						key->ep = ued->bEndpointAddress;
+						key->ep_size = ued->wMaxPacketSize;
+						key->configuration = ucd->bConfigurationValue;
+						key->interface = uid->bInterfaceNumber;
+						key->altInterface = uid->bAlternateSetting;
+
+						found = true;
+
+						break;
+					}
 				}
+
+				if (found)
+					break;
 			}
 
 			if (found)
@@ -158,107 +187,59 @@ s32 USBKeyboard_Find(u16 *vid, u16 *pid)
 		}
 
 		USB_FreeDescriptors(&udd);
-		USB_CloseDevice(&fd);
+
+		if (found)
+			break;
+		else
+			USB_CloseDevice(&fd);
 	}
 
 	free(buffer);
 
-	if (found)
-		return 1;
-
-	return 0;
-}
-
-//Open a keyboard from his pid and vid that you retrieved with USBKeyboard_Find
-s32 USBKeyboard_Open(USBKeyboard *key, u16 vid, u16 pid)
-{
-	if (!key)
-		return -1;
-
-	key->connect = false;
-
-	if (USB_OpenDevice("oh0", vid ,pid, &key->fd) < 0)
-		return -1;
-
-	u32 iConf, iInterface, iEp;
-	usb_devdesc udd;
-	usb_configurationdesc *ucd;
-	usb_interfacedesc *uid;
-	usb_endpointdesc *ued;
-
-	//Search a interrupt endPoint thanks to the usb descriptor
-	USB_GetDescriptors(key->fd, &udd);
-	for(iConf = 0; iConf < udd.bNumConfigurations; iConf++)
-	{
-		ucd = &udd.configurations[iConf];
-		for(iInterface = 0; iInterface < ucd->bNumInterfaces; iInterface++)
-		{
-			uid = &ucd->interfaces[iInterface];
-			if ( (uid->bInterfaceClass == USB_CLASS_HID) && (uid->bInterfaceSubClass == USB_SUBCLASS_BOOT) && (uid->bInterfaceProtocol== USB_PROTOCOL_KEYBOARD))
-			{
-				for(iEp = 0; iEp < uid->bNumEndpoints; iEp++)
-				{
-					ued = &uid->endpoints[iEp];
-					if (ued->bmAttributes != USB_ENPOINT_INTERRUPT)
- 						continue;
-					if (!(ued->bEndpointAddress & USB_ENDPOINT_IN))
-						continue;
-					key->ep = ued->bEndpointAddress;
-					key->ep_size = ued->wMaxPacketSize;
-					key->configuration = ucd->bConfigurationValue;
-					key->interface = uid->bInterfaceNumber;
-					key->altInterface = uid->bAlternateSetting;
-					goto found;
-				}
-			}
-		}
-	}
-	USB_FreeDescriptors(&udd);
-	return -2;
-	
-found:
-	USB_FreeDescriptors(&udd);
-	
-	u8 conf;
-	
-	if(USB_GetConfiguration(key->fd, &conf) < 0) {
-		USBKeyboard_Close(key);
+	if (!found)
 		return -3;
-	}
 
-	if(conf != key->configuration && USB_SetConfiguration(key->fd, key->configuration) < 0) {
+	if (USB_GetConfiguration(key->fd, &conf) < 0)
+	{
 		USBKeyboard_Close(key);
 		return -4;
 	}
 
-	if(key->altInterface != 0 && USB_SetAlternativeInterface(key->fd, key->interface, key->altInterface) < 0) {
+	if (conf != key->configuration &&
+		USB_SetConfiguration(key->fd, key->configuration) < 0)
+	{
 		USBKeyboard_Close(key);
 		return -5;
 	}
-	
-	if (USBKeyboard_Get_Protocol(key)!=0)
+
+	if (key->altInterface != 0 &&
+		USB_SetAlternativeInterface(key->fd, key->interface, key->altInterface) < 0)
 	{
-		if (USBKeyboard_Set_Protocol(key, 0)<0)
+		USBKeyboard_Close(key);
+		return -6;
+	}
+	
+	if (USBKeyboard_Get_Protocol(key) != 0)
+	{
+		if (USBKeyboard_Set_Protocol(key, 0) < 0)
 		{
 			USBKeyboard_Close(key);
 			return -6;
 		}
-		if (USBKeyboard_Get_Protocol(key)==1)
+
+		if (USBKeyboard_Get_Protocol(key) == 1)
 		{
 			USBKeyboard_Close(key);
 			return -7;
 		}
 	}
 	
-	if (USB_DeviceRemovalNotifyAsync(key->fd,&_disconnect,key)<0)
+	if (USB_DeviceRemovalNotifyAsync(key->fd,&_disconnect,key) < 0)
 	{
 		USBKeyboard_Close(key);
 		return -8;
 	}
 
-	key->leds = 0;
-	key->vid = vid;
-	key->pid = pid;
 	key->connect = true;
 
 	return 1;
@@ -268,7 +249,8 @@ found:
 s32 USBKeyboard_Close(USBKeyboard *key)
 {
 	s32 res = USB_CloseDevice(&(key->fd));
-	key->connect = false;
+
+	memset(key, 0, sizeof(USBKeyboard));
 
 	return res;
 }
