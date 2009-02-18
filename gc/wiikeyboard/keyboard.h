@@ -75,21 +75,11 @@ typedef struct {
 	u16 symbol;
 } keyboard_event;
 
-typedef enum {
-	KEYBOARD_LEDNUM = 0,
-	KEYBOARD_LEDCAPS,
-	KEYBOARD_LEDSCROLL
-} keyboard_led;
-
 s32 KEYBOARD_Init(void);
 s32 KEYBOARD_Deinit(void);
 
 s32 KEYBOARD_GetEvent(keyboard_event *event);
 s32 KEYBOARD_FlushEvents(void);
-
-s32 KEYBOARD_SetLed(const keyboard_led, bool on);
-s32 KEYBOARD_ToggleLed(const keyboard_led);
-bool KEYBOARD_GetLed(const keyboard_led);
 
 #ifdef __cplusplus
    }

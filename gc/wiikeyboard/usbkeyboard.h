@@ -70,53 +70,29 @@ typedef struct
 	u8 keyCode;
 } USBKeyboard_event;
 
-typedef void (*eventcallback)(USBKeyboard_event event, void *usrdata);
-
-typedef struct
-{
-	u16 vid;
-	u16 pid;
-	s32 fd;
-
-	bool connect;
-	
-	u8 keyNew[8];
-	u8 keyOld[8];
-	u8 oldState;
-
-	u8 leds;
-	
-	eventcallback cb;
-	void* cbData;
-
-	u8 configuration;
-	u32 interface;
-	u32 altInterface;
-
-	u8 ep;
-	u32 ep_size;
-
-} USBKeyboard;
+typedef void (*eventcallback)(USBKeyboard_event event);
 
 s32 USBKeyboard_Initialize(void);
 s32 USBKeyboard_Deinitialize(void);
 
-s32 USBKeyboard_Open(USBKeyboard *key);
-s32 USBKeyboard_Close(USBKeyboard *key);
+s32 USBKeyboard_Open(void);
+void USBKeyboard_Close(void);
 
-s32 USBKeyboard_Get_Protocol(USBKeyboard *key);
-s32 USBKeyboard_Set_Protocol(USBKeyboard *key, u8 protocol);
+bool USBKeyboard_IsConnected(void);
 
-s32 USBKeyboard_Get_InputReport_Intr(USBKeyboard *key);
-s32 USBKeyboard_Get_OutputReport_Ctrl(USBKeyboard *key, u8 *leds);
-s32 USBKeyboard_Set_OutputReport_Ctrl(USBKeyboard *key);
+s32 USBKeyboard_Get_Protocol(void);
+s32 USBKeyboard_Set_Protocol(u8 protocol);
 
-s32 USBKeyboard_Scan(USBKeyboard *key);
+s32 USBKeyboard_Get_InputReport_Intr(void);
+s32 USBKeyboard_Get_OutputReport_Ctrl(u8 *leds);
+s32 USBKeyboard_Set_OutputReport_Ctrl(void);
 
-s32 USBKeyboard_SetLed(USBKeyboard *key, const USBKeyboard_led led, bool on);
-s32 USBKeyboard_ToggleLed(USBKeyboard *key, const USBKeyboard_led led);
+s32 USBKeyboard_Scan(void);
 
-void USBKeyboard_SetCB(USBKeyboard* key, eventcallback cb, void* data);
+s32 USBKeyboard_SetLed(const USBKeyboard_led led, bool on);
+s32 USBKeyboard_ToggleLed(const USBKeyboard_led led);
+
+void USBKeyboard_SetCB(eventcallback cb);
 
 #ifdef __cplusplus
    }

@@ -38,46 +38,69 @@ distribution.
 #define	HEAP_SIZE 4096
 #define DEVLIST_MAXSIZE 8
 
+struct ukbd {
+	bool connected;
+	u16 vid;
+	u16 pid;
+
+	s32 fd;
+	
+	u8 keyNew[8];
+	u8 keyOld[8];
+	u8 oldState;
+
+	u8 leds;
+	
+	eventcallback cb;
+
+	u8 configuration;
+	u32 interface;
+	u32 altInterface;
+
+	u8 ep;
+	u32 ep_size;
+};
+
 static s32 hId = -1;
+static struct ukbd *_kbd;
 
 //Callback when the keyboard is disconnected
-static s32 _disconnect(s32 retval,void* data)
+static s32 _disconnect(s32 retval, void *data)
 {
-	USBKeyboard *key = (USBKeyboard*) data;
-	key->connect = false;
+	_kbd->connected = false;
 
-	if (!key->cb)
+	if (!_kbd->cb)
 		return 1;
 
 	USBKeyboard_event ev;
 	ev.type = USBKEYBOARD_DISCONNECTED;
 
-	key->cb(ev,key->cbData);
+	_kbd->cb(ev);
 
 	return 1;
 }
 
-static void USBKeyboard_SubmitEvent(USBKeyboard *key, USBKeyboard_eventType type, u8 code)
+static void USBKeyboard_SubmitEvent(USBKeyboard_eventType type, u8 code)
 {
-	if (!key->cb)
+	if (!_kbd->cb)
 		return;
 
 	USBKeyboard_event ev;
 	ev.type = type;
 	ev.keyCode = code;
 
-	key->cb(ev,key->cbData);
+	_kbd->cb(ev);
 }
 
 //init the ioheap
 s32 USBKeyboard_Initialize(void)
 {
-	if(hId > 0)
+	if (hId > 0)
 		return 0;
 
 	hId = iosCreateHeap(HEAP_SIZE);
 
-	if(hId < 0)
+	if (hId < 0)
 		return IPC_ENOHEAP;
 
 	return IPC_OK;
@@ -86,18 +109,19 @@ s32 USBKeyboard_Initialize(void)
 //Destroy the io heap
 s32 USBKeyboard_Deinitialize(void)
 {
-	if(hId < 0)
+	if (hId < 0)
 		return -1;
 
 	s32 retval;
 	retval = iosDestroyHeap(hId);
 	hId = -1;
+
 	return retval;
 }
 
 //Search for a keyboard connected to the wii usb port
 //Thanks to Sven Peter usbstorage support
-s32 USBKeyboard_Open(USBKeyboard *key)
+s32 USBKeyboard_Open(void)
 {
 	u8 *buffer;
 	u8 dummy;
@@ -111,9 +135,6 @@ s32 USBKeyboard_Open(USBKeyboard *key)
 	usb_endpointdesc *ued;
 	u8 conf;
 
-	if (!key)
-		return -1;
-
 	buffer = memalign(32, DEVLIST_MAXSIZE << 3);
 	if(buffer == NULL)
 		return -1;
@@ -126,7 +147,17 @@ s32 USBKeyboard_Open(USBKeyboard *key)
 		return -2;
 	}
 
-	USBKeyboard_Close(key);
+
+	if (_kbd) {
+		USB_CloseDevice(&_kbd->fd);
+	} else {
+		_kbd = (struct ukbd *) malloc(sizeof(struct ukbd));
+
+		if (!_kbd)
+			return -1;
+	}
+	
+	memset(_kbd, 0, sizeof(struct ukbd));
 
 	for (i = 0; i < DEVLIST_MAXSIZE; i++)
 	{
@@ -163,14 +194,14 @@ s32 USBKeyboard_Open(USBKeyboard *key)
 						if (!(ued->bEndpointAddress & USB_ENDPOINT_IN))
 							continue;
 
-						key->fd = fd;
-						key->vid = vid;
-						key->pid = pid;
-						key->ep = ued->bEndpointAddress;
-						key->ep_size = ued->wMaxPacketSize;
-						key->configuration = ucd->bConfigurationValue;
-						key->interface = uid->bInterfaceNumber;
-						key->altInterface = uid->bAlternateSetting;
+						_kbd->fd = fd;
+						_kbd->vid = vid;
+						_kbd->pid = pid;
+						_kbd->ep = ued->bEndpointAddress;
+						_kbd->ep_size = ued->wMaxPacketSize;
+						_kbd->configuration = ucd->bConfigurationValue;
+						_kbd->interface = uid->bInterfaceNumber;
+						_kbd->altInterface = uid->bAlternateSetting;
 
 						found = true;
 
@@ -199,224 +230,241 @@ s32 USBKeyboard_Open(USBKeyboard *key)
 	if (!found)
 		return -3;
 
-	if (USB_GetConfiguration(key->fd, &conf) < 0)
+	if (USB_GetConfiguration(_kbd->fd, &conf) < 0)
 	{
-		USBKeyboard_Close(key);
+		USBKeyboard_Close();
 		return -4;
 	}
 
-	if (conf != key->configuration &&
-		USB_SetConfiguration(key->fd, key->configuration) < 0)
+	if (conf != _kbd->configuration &&
+		USB_SetConfiguration(_kbd->fd, _kbd->configuration) < 0)
 	{
-		USBKeyboard_Close(key);
+		USBKeyboard_Close();
 		return -5;
 	}
 
-	if (key->altInterface != 0 &&
-		USB_SetAlternativeInterface(key->fd, key->interface, key->altInterface) < 0)
+	if (_kbd->altInterface != 0 &&
+		USB_SetAlternativeInterface(_kbd->fd, _kbd->interface, _kbd->altInterface) < 0)
 	{
-		USBKeyboard_Close(key);
+		USBKeyboard_Close();
 		return -6;
 	}
 	
-	if (USBKeyboard_Get_Protocol(key) != 0)
+	if (USBKeyboard_Get_Protocol() != 0)
 	{
-		if (USBKeyboard_Set_Protocol(key, 0) < 0)
+		if (USBKeyboard_Set_Protocol(0) < 0)
 		{
-			USBKeyboard_Close(key);
+			USBKeyboard_Close();
 			return -6;
 		}
 
-		if (USBKeyboard_Get_Protocol(key) == 1)
+		if (USBKeyboard_Get_Protocol() == 1)
 		{
-			USBKeyboard_Close(key);
+			USBKeyboard_Close();
 			return -7;
 		}
 	}
 	
-	if (USB_DeviceRemovalNotifyAsync(key->fd,&_disconnect,key) < 0)
+	if (USB_DeviceRemovalNotifyAsync(_kbd->fd, &_disconnect, NULL) < 0)
 	{
-		USBKeyboard_Close(key);
+		USBKeyboard_Close();
 		return -8;
 	}
 
-	key->connect = true;
+	_kbd->connected = true;
 
 	return 1;
 }
 
 //Close the device
-s32 USBKeyboard_Close(USBKeyboard *key)
+void USBKeyboard_Close()
 {
-	s32 res = USB_CloseDevice(&(key->fd));
+	if (!_kbd)
+		return;
 
-	memset(key, 0, sizeof(USBKeyboard));
+	USB_CloseDevice(&_kbd->fd);
 
-	return res;
+	free(_kbd);
+	_kbd = NULL;
+
+	return;
+}
+
+bool USBKeyboard_IsConnected(void) {
+	if (!_kbd)
+		return false;
+
+	return _kbd->connected;
 }
 
 //Get the protocol, 0=bout protocol and 1=report protocol
-s32 USBKeyboard_Get_Protocol(USBKeyboard *key)
+s32 USBKeyboard_Get_Protocol()
 {
 	s32 protocol;
 	u8 *buffer = 0;
 	buffer = iosAlloc(hId, 1);
 	if (buffer == NULL)
 		return -1;
-	USB_WriteCtrlMsg(key->fd,USB_REQTYPE_GET,USB_REQ_GETPROTOCOL,0,0,1,buffer);
+	USB_WriteCtrlMsg(_kbd->fd,USB_REQTYPE_GET,USB_REQ_GETPROTOCOL,0,0,1,buffer);
 	protocol=*buffer;
 	iosFree(hId, buffer);
 	return protocol;
 }
 
 //Modify the protocol, 0=bout protocol and 1=report protocol
-s32 USBKeyboard_Set_Protocol(USBKeyboard *key, u8 protocol)
+s32 USBKeyboard_Set_Protocol(u8 protocol)
 {
-	return USB_WriteCtrlMsg(key->fd,USB_REQTYPE_SET,USB_REQ_SETPROTOCOL,protocol,0,0,0);
+	return USB_WriteCtrlMsg(_kbd->fd,USB_REQTYPE_SET,USB_REQ_SETPROTOCOL,protocol,0,0,0);
 }
 
 //Get an input report from interrupt pipe
-s32 USBKeyboard_Get_InputReport_Intr(USBKeyboard *key)
+s32 USBKeyboard_Get_InputReport_Intr()
 {
 	u8 *buffer = 0;
 	buffer = iosAlloc(hId, 8);
 	if (buffer == NULL)
 		return -1;
-	s32 ret = USB_ReadIntrMsg(key->fd,key->ep,8,buffer);
-	memcpy(key->keyNew,buffer,8);
+	s32 ret = USB_ReadIntrMsg(_kbd->fd, _kbd->ep, 8, buffer);
+	memcpy(_kbd->keyNew,buffer,8);
 	iosFree(hId, buffer);
 	return ret;
 }
 
 //Get an input report from control pipe
-s32 USBKeyboard_Get_OutputReport_Ctrl(USBKeyboard *key,u8 *leds)
+s32 USBKeyboard_Get_OutputReport_Ctrl(u8 *leds)
 {
 	u8 *buffer = 0;
 	buffer = iosAlloc(hId, 1);
 	if (buffer == NULL)
 		return -1;
-	s32 ret = USB_WriteCtrlMsg(key->fd,USB_REQTYPE_GET,USB_REQ_GETREPORT, USB_REPTYPE_OUTPUT<<8 | 0,0,1,buffer);
+	s32 ret = USB_WriteCtrlMsg(_kbd->fd,USB_REQTYPE_GET,USB_REQ_GETREPORT, USB_REPTYPE_OUTPUT<<8 | 0,0,1,buffer);
 	memcpy(leds,buffer,1);
 	iosFree(hId, buffer);
 	return ret;
 }
 
 //Set an input report to control pipe
-s32 USBKeyboard_Set_OutputReport_Ctrl(USBKeyboard *key)
+s32 USBKeyboard_Set_OutputReport_Ctrl()
 {
 	u8 *buffer = 0;
 	buffer = iosAlloc(hId, 1);
 	if (buffer == NULL)
 		return -1;
-	memcpy(buffer,&key->leds,1);
-	s32 ret = USB_WriteCtrlMsg(key->fd,USB_REQTYPE_SET,USB_REQ_SETREPORT, USB_REPTYPE_OUTPUT<<8 | 0,0,1,buffer);
+	memcpy(buffer,&_kbd->leds,1);
+	s32 ret = USB_WriteCtrlMsg(_kbd->fd,USB_REQTYPE_SET,USB_REQ_SETREPORT, USB_REPTYPE_OUTPUT<<8 | 0,0,1,buffer);
 	iosFree(hId, buffer);
 	return ret;
 }
 
 //Scan for key presses and generate events for the callback function
-s32 USBKeyboard_Scan(USBKeyboard *key)
+s32 USBKeyboard_Scan()
 {
 	u8 i;
 	u8 bad_message[6] = {0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
-	if (USBKeyboard_Get_InputReport_Intr(key)<0)
+	if (USBKeyboard_Get_InputReport_Intr()<0)
 		return -1;
 
-	if (memcmp(key->keyNew + 2, bad_message, 6) == 0)
+	if (memcmp(_kbd->keyNew + 2, bad_message, 6) == 0)
 		return 0;
 
-	if(key->keyNew[0] != key->oldState) {
-		if ((key->keyNew[0] & 0x02) && !(key->oldState & 0x02)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe1);
-		} else if ((key->oldState & 0x02) && !(key->keyNew[0] & 0x02)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe1);
+	if(_kbd->keyNew[0] != _kbd->oldState) {
+		if ((_kbd->keyNew[0] & 0x02) && !(_kbd->oldState & 0x02)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe1);
+		} else if ((_kbd->oldState & 0x02) && !(_kbd->keyNew[0] & 0x02)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe1);
 		}
 
-		if ((key->keyNew[0] & 0x20) && !(key->oldState & 0x20)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe5);
-		} else if ((key->oldState & 0x20) && !(key->keyNew[0] & 0x20)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe5);
+		if ((_kbd->keyNew[0] & 0x20) && !(_kbd->oldState & 0x20)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe5);
+		} else if ((_kbd->oldState & 0x20) && !(_kbd->keyNew[0] & 0x20)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe5);
 		}
 
-		if ((key->keyNew[0] & 0x01) && !(key->oldState & 0x01)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe0);
-		} else if ((key->oldState & 0x01) && !(key->keyNew[0] & 0x01)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe0);
+		if ((_kbd->keyNew[0] & 0x01) && !(_kbd->oldState & 0x01)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe0);
+		} else if ((_kbd->oldState & 0x01) && !(_kbd->keyNew[0] & 0x01)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe0);
 		}
 
-		if ((key->keyNew[0] & 0x10) && !(key->oldState & 0x10)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe4);
-		} else if ((key->oldState & 0x10) && !(key->keyNew[0] & 0x10)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe4);
+		if ((_kbd->keyNew[0] & 0x10) && !(_kbd->oldState & 0x10)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe4);
+		} else if ((_kbd->oldState & 0x10) && !(_kbd->keyNew[0] & 0x10)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe4);
 		}
 
-		if ((key->keyNew[0] & 0x04) && !(key->oldState & 0x04)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe2);
-		} else if ((key->oldState & 0x04) && !(key->keyNew[0] & 0x04)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe2);
+		if ((_kbd->keyNew[0] & 0x04) && !(_kbd->oldState & 0x04)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe2);
+		} else if ((_kbd->oldState & 0x04) && !(_kbd->keyNew[0] & 0x04)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe2);
 		}
 
-		if ((key->keyNew[0] & 0x40) && !(key->oldState & 0x40)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe6);
-		} else if ((key->oldState & 0x40) && !(key->keyNew[0] & 0x40)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe6);
+		if ((_kbd->keyNew[0] & 0x40) && !(_kbd->oldState & 0x40)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe6);
+		} else if ((_kbd->oldState & 0x40) && !(_kbd->keyNew[0] & 0x40)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe6);
 		}
 
-		if ((key->keyNew[0] & 0x08) && !(key->oldState & 0x08)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe3);
-		} else if ((key->oldState & 0x08) && !(key->keyNew[0] & 0x08)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe3);
+		if ((_kbd->keyNew[0] & 0x08) && !(_kbd->oldState & 0x08)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe3);
+		} else if ((_kbd->oldState & 0x08) && !(_kbd->keyNew[0] & 0x08)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe3);
 		}
 
-		if ((key->keyNew[0] & 0x80) && !(key->oldState & 0x80)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, 0xe7);
-		} else if ((key->oldState & 0x80) && !(key->keyNew[0] & 0x80)) {
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, 0xe7);
+		if ((_kbd->keyNew[0] & 0x80) && !(_kbd->oldState & 0x80)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, 0xe7);
+		} else if ((_kbd->oldState & 0x80) && !(_kbd->keyNew[0] & 0x80)) {
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, 0xe7);
 		}
 	}
 	for (i = 2; i < 8; i++)
 	{
-		if (key->keyOld[i] > 3 && memchr(key->keyNew + 2, key->keyOld[i], 6) == NULL)
+		if (_kbd->keyOld[i] > 3 && memchr(_kbd->keyNew + 2, _kbd->keyOld[i], 6) == NULL)
 		{
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_RELEASED, key->keyOld[i]);
+			USBKeyboard_SubmitEvent(USBKEYBOARD_RELEASED, _kbd->keyOld[i]);
 		}
-		if (key->keyNew[i] > 3 && memchr(key->keyOld + 2, key->keyNew[i], 6) == NULL)
+		if (_kbd->keyNew[i] > 3 && memchr(_kbd->keyOld + 2, _kbd->keyNew[i], 6) == NULL)
 		{
-			USBKeyboard_SubmitEvent(key, USBKEYBOARD_PRESSED, key->keyNew[i]);
+			USBKeyboard_SubmitEvent(USBKEYBOARD_PRESSED, _kbd->keyNew[i]);
 		}
 	}
-	memcpy(key->keyOld, key->keyNew, 8);
-	key->oldState = key->keyNew[0];
+
+	memcpy(_kbd->keyOld, _kbd->keyNew, 8);
+	_kbd->oldState = _kbd->keyNew[0];
+
 	return 0;
 }
 
 //Turn on/off a led
-s32 USBKeyboard_SetLed(USBKeyboard *key, const USBKeyboard_led led, bool on)
+s32 USBKeyboard_SetLed(const USBKeyboard_led led, bool on)
 {
 	if (on)
-		key->leds = key->leds | (1 << led );
+		_kbd->leds = _kbd->leds | (1 << led );
 	else
-		key->leds = key->leds & (255 ^ (1 << led));
+		_kbd->leds = _kbd->leds & (255 ^ (1 << led));
 
-	if (USBKeyboard_Set_OutputReport_Ctrl(key)<0)
+	if (USBKeyboard_Set_OutputReport_Ctrl() < 0)
 		return -2;
 
 	return 1;
 }
 
 //Toggle a led
-s32 USBKeyboard_ToggleLed(USBKeyboard *key, const USBKeyboard_led led)
+s32 USBKeyboard_ToggleLed(const USBKeyboard_led led)
 {
-	key->leds = key->leds ^ (1 << led);
-	if (USBKeyboard_Set_OutputReport_Ctrl(key)<0)
+	_kbd->leds = _kbd->leds ^ (1 << led);
+
+	if (USBKeyboard_Set_OutputReport_Ctrl() < 0)
 		return -2;
+
 	return 1;
 }
 
 //Set the callback function which will handle the keyboard events
-void USBKeyboard_SetCB(USBKeyboard* key,eventcallback cb, void* data)
+void USBKeyboard_SetCB(eventcallback cb)
 {
-	key->cb = cb;
-	key->cbData = data;
+	if (!_kbd)
+		return;
+
+	_kbd->cb = cb;
 }
 
