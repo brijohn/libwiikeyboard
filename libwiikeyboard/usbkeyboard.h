@@ -4,6 +4,7 @@ usbkeyboard.h -- Usb keyboard support(boot protocol)
 
 Copyright (C) 2008, 2009
 DAVY Guillaume davyg2@gmail.com
+Brian Johnson brijohn@gmail.com
 dhewg
 
 This software is provided 'as-is', without any express or implied
@@ -39,34 +40,35 @@ typedef enum
 	USBKEYBOARD_PRESSED = 0,
 	USBKEYBOARD_RELEASED,
 	USBKEYBOARD_DISCONNECTED
-} USBKeyboard_eventType;
+} usb_keyboard_event_type;
 
 typedef enum
 {
 	USBKEYBOARD_LEDNUM = 0,
 	USBKEYBOARD_LEDCAPS,
 	USBKEYBOARD_LEDSCROLL
-} USBKeyboard_led;
+} usb_keyboard_led;
 
 typedef struct
 {
-	USBKeyboard_eventType type;
+	usb_keyboard_event_type type;
 	u8 keyCode;
-} USBKeyboard_event;
+} usb_keyboard_event;
 
-typedef void (*eventcallback) (USBKeyboard_event event);
+typedef void (*eventcallback) (usb_keyboard_event event);
 
-s32 USBKeyboard_Initialize(void);
-s32 USBKeyboard_Deinitialize(void);
+s32 _usb_keyboard_init(void);
+s32 _usb_keyboard_deinit(void);
 
-s32 USBKeyboard_Open(const eventcallback cb);
-void USBKeyboard_Close(void);
+s32 _usb_keyboard_open(const eventcallback cb);
+void _usb_keyboard_close(void);
 
-bool USBKeyboard_IsConnected(void);
-s32 USBKeyboard_Scan(void);
+bool _usb_keyboard_is_connected(void);
+s32 _usb_keyboard_scan(void);
 
-s32 USBKeyboard_SetLed(const USBKeyboard_led led, bool on);
-s32 USBKeyboard_ToggleLed(const USBKeyboard_led led);
+s32 _usb_keyboard_set_led(const usb_keyboard_led led, bool on);
+s32 _usb_keyboard_toggle_led(const usb_keyboard_led led);
+bool _usb_keyboard_get_led(const usb_keyboard_led led);
 
 #ifdef __cplusplus
    }

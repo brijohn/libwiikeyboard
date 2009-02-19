@@ -4,6 +4,7 @@ usbkeyboard.c -- Usb keyboard support(boot protocol)
 
 Copyright (C) 2008, 2009
 DAVY Guillaume davyg2@gmail.com
+Brian Johnson brijohn@gmail.com
 dhewg
 
 This software is provided 'as-is', without any express or implied
@@ -33,7 +34,7 @@ distribution.
 #include <gccore.h>
 #include <ogc/usb.h>
 
-#include <wiikeyboard/usbkeyboard.h>
+#include "usbkeyboard.h"
 
 #define	HEAP_SIZE					4096
 #define DEVLIST_MAXSIZE				8
@@ -106,12 +107,12 @@ static u8 _ukbd_mod_map[][2] = {
 
 #define MODMAPSIZE (sizeof(_ukbd_mod_map)/sizeof(_ukbd_mod_map[0]))
 
-static void _submit(USBKeyboard_eventType type, u8 code)
+static void _submit(usb_keyboard_event_type type, u8 code)
 {
 	if (!_kbd->cb)
 		return;
 
-	USBKeyboard_event ev;
+	usb_keyboard_event ev;
 	ev.type = type;
 	ev.keyCode = code;
 
@@ -213,7 +214,7 @@ static s32 _set_output_report(void)
 }
 
 //init the ioheap
-s32 USBKeyboard_Initialize(void)
+s32 _usb_keyboard_init(void)
 {
 	if (hId > 0)
 		return 0;
@@ -227,7 +228,7 @@ s32 USBKeyboard_Initialize(void)
 }
 
 //Destroy the io heap
-s32 USBKeyboard_Deinitialize(void)
+s32 _usb_keyboard_deinit(void)
 {
 	if (hId < 0)
 		return -1;
@@ -241,7 +242,7 @@ s32 USBKeyboard_Deinitialize(void)
 
 //Search for a keyboard connected to the wii usb port
 //Thanks to Sven Peter usbstorage support
-s32 USBKeyboard_Open(const eventcallback cb)
+s32 _usb_keyboard_open(const eventcallback cb)
 {
 	u8 *buffer;
 	u8 dummy, i, conf;
@@ -350,21 +351,21 @@ s32 USBKeyboard_Open(const eventcallback cb)
 
 	if (USB_GetConfiguration(_kbd->fd, &conf) < 0)
 	{
-		USBKeyboard_Close();
+		_usb_keyboard_close();
 		return -4;
 	}
 
 	if (conf != _kbd->configuration &&
 		USB_SetConfiguration(_kbd->fd, _kbd->configuration) < 0)
 	{
-		USBKeyboard_Close();
+		_usb_keyboard_close();
 		return -5;
 	}
 
 	if (_kbd->altInterface != 0 &&
 		USB_SetAlternativeInterface(_kbd->fd, _kbd->interface, _kbd->altInterface) < 0)
 	{
-		USBKeyboard_Close();
+		_usb_keyboard_close();
 		return -6;
 	}
 	
@@ -372,20 +373,20 @@ s32 USBKeyboard_Open(const eventcallback cb)
 	{
 		if (_set_protocol(0) < 0)
 		{
-			USBKeyboard_Close();
+			_usb_keyboard_close();
 			return -6;
 		}
 
 		if (_get_protocol() == 1)
 		{
-			USBKeyboard_Close();
+			_usb_keyboard_close();
 			return -7;
 		}
 	}
 	
 	if (USB_DeviceRemovalNotifyAsync(_kbd->fd, &_disconnect, NULL) < 0)
 	{
-		USBKeyboard_Close();
+		_usb_keyboard_close();
 		return -8;
 	}
 
@@ -395,7 +396,7 @@ s32 USBKeyboard_Open(const eventcallback cb)
 }
 
 //Close the device
-void USBKeyboard_Close(void)
+void _usb_keyboard_close(void)
 {
 	if (!_kbd)
 		return;
@@ -408,7 +409,7 @@ void USBKeyboard_Close(void)
 	return;
 }
 
-bool USBKeyboard_IsConnected(void) {
+bool _usb_keyboard_is_connected(void) {
 	if (!_kbd)
 		return false;
 
@@ -416,7 +417,7 @@ bool USBKeyboard_IsConnected(void) {
 }
 
 //Scan for key presses and generate events for the callback function
-s32 USBKeyboard_Scan(void)
+s32 _usb_keyboard_scan(void)
 {
 	int i, j, index;
 
@@ -476,7 +477,7 @@ s32 USBKeyboard_Scan(void)
 }
 
 //Turn on/off a led
-s32 USBKeyboard_SetLed(const USBKeyboard_led led, bool on)
+s32 _usb_keyboard_set_led(const usb_keyboard_led led, bool on)
 {
 	if (!_kbd)
 		return -1;
@@ -493,7 +494,7 @@ s32 USBKeyboard_SetLed(const USBKeyboard_led led, bool on)
 }
 
 //Toggle a led
-s32 USBKeyboard_ToggleLed(const USBKeyboard_led led)
+s32 _usb_keyboard_toggle_led(const usb_keyboard_led led)
 {
 	if (!_kbd)
 		return -1;
@@ -504,5 +505,14 @@ s32 USBKeyboard_ToggleLed(const USBKeyboard_led led)
 		return -2;
 
 	return 1;
+}
+
+//Check if a led is on or off
+bool _usb_keyboard_get_led(const usb_keyboard_led led)
+{
+       if (!_kbd)
+               return -1;
+
+       return (_kbd->leds & (1 << led)) > 0;
 }
 

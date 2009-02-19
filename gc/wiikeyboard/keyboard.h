@@ -68,6 +68,13 @@ typedef enum {
 	KEYBOARD_RELEASED
 } keyboard_event_type;
 
+typedef enum
+{
+	KEYBOARD_LEDNUM = 0,
+	KEYBOARD_LEDCAPS,
+	KEYBOARD_LEDSCROLL
+} keyboard_led;
+
 typedef struct {
 	keyboard_event_type type;
 	u16 modifiers;
@@ -86,6 +93,10 @@ s32 KEYBOARD_FlushEvents(void);
 
 s32 KEYBOARD_SetKeyDelay(u16 inital, u16 delay);
 s32 KEYBOARD_EnableKeyRepeat(bool enable);
+
+s32 KEYBOARD_SetLed(const keyboard_led, bool on);
+s32 KEYBOARD_ToggleLed(const keyboard_led);
+bool KEYBOARD_GetLed(const keyboard_led);
 
 #ifdef __cplusplus
    }

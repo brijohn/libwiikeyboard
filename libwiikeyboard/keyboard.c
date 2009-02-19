@@ -41,7 +41,7 @@ distribution.
 #include <ogc/lwp_queue.h>
 #include <ogc/lwp_watchdog.h>
 
-#include <wiikeyboard/usbkeyboard.h>
+#include "usbkeyboard.h"
 #include <wiikeyboard/keyboard.h>
 
 #include "wsksymvar.h"
@@ -179,7 +179,7 @@ void update_modifier(u_int type, int toggle, int mask) {
 }
 
 //Event callback, gets called when an event occurs in usbkeyboard
-static void _kbd_event_cb(USBKeyboard_event kevent)
+static void _kbd_event_cb(usb_keyboard_event kevent)
 {
 	keyboard_event event;
 	keysym_t ksym;
@@ -231,7 +231,7 @@ static void _kbd_event_cb(USBKeyboard_event kevent)
 
 	case KS_Caps_Lock:
 		update_modifier(event.type, 1, MOD_CAPSLOCK);
-		USBKeyboard_SetLed(USBKEYBOARD_LEDCAPS,
+		_usb_keyboard_set_led(USBKEYBOARD_LEDCAPS,
 							MOD_ONESET(_modifiers, MOD_CAPSLOCK));
 		break;
 
@@ -261,13 +261,13 @@ static void _kbd_event_cb(USBKeyboard_event kevent)
 
 	case KS_Num_Lock:
 		update_modifier(event.type, 1, MOD_NUMLOCK);
-		USBKeyboard_SetLed(USBKEYBOARD_LEDNUM,
+		_usb_keyboard_set_led(USBKEYBOARD_LEDNUM,
 							MOD_ONESET(_modifiers, MOD_NUMLOCK));
 		break;
 
 	case KS_Hold_Screen:
 		update_modifier(event.type, 1, MOD_HOLDSCREEN);
-		USBKeyboard_SetLed(USBKEYBOARD_LEDSCROLL,
+		_usb_keyboard_set_led(USBKEYBOARD_LEDSCROLL,
 							MOD_ONESET(_modifiers, MOD_HOLDSCREEN));
 		break;
 	}
@@ -364,7 +364,7 @@ static s32 _kbd_scan_for_keyboard(void)
 	s32 ret;
 	keyboard_event event;
 
-	ret = USBKeyboard_Open(&_kbd_event_cb);
+	ret = _usb_keyboard_open(&_kbd_event_cb);
 
 	if (ret < 0)
 		return ret;
@@ -373,13 +373,13 @@ static s32 _kbd_scan_for_keyboard(void)
 	_composelen = 0;
 	memset(_held, 0, sizeof(_held));
 
-	USBKeyboard_SetLed(USBKEYBOARD_LEDNUM, true);
-	USBKeyboard_SetLed(USBKEYBOARD_LEDCAPS, true);
-	USBKeyboard_SetLed(USBKEYBOARD_LEDSCROLL, true);
+	_usb_keyboard_set_led(USBKEYBOARD_LEDNUM, true);
+	_usb_keyboard_set_led(USBKEYBOARD_LEDCAPS, true);
+	_usb_keyboard_set_led(USBKEYBOARD_LEDSCROLL, true);
 	usleep(200 * 1000);
-	USBKeyboard_SetLed(USBKEYBOARD_LEDNUM, false);
-	USBKeyboard_SetLed(USBKEYBOARD_LEDCAPS, false);
-	USBKeyboard_SetLed(USBKEYBOARD_LEDSCROLL, false);
+	_usb_keyboard_set_led(USBKEYBOARD_LEDNUM, false);
+	_usb_keyboard_set_led(USBKEYBOARD_LEDCAPS, false);
+	_usb_keyboard_set_led(USBKEYBOARD_LEDSCROLL, false);
 
 	event.type = KEYBOARD_CONNECTED;
 	event.modifiers = 0;
@@ -396,14 +396,14 @@ static void * _kbd_thread_func(void *arg) {
 	while (!_kbd_thread_quit) {
 		// scan for new attached keyboards
 		if ((turns % KBD_THREAD_KBD_SCAN_INTERVAL) == 0) {
-			if (!USBKeyboard_IsConnected())
+			if (!_usb_keyboard_is_connected())
 				_kbd_scan_for_keyboard();
 
 			turns = 0;
 		}
 		turns++;
 
-		USBKeyboard_Scan();
+		_usb_keyboard_scan();
 		usleep(KBD_THREAD_UDELAY);
 	}
 
@@ -497,7 +497,7 @@ s32 KEYBOARD_Init(void)
 	if (USB_Initialize() != IPC_OK)
 		return -1;
 
-	if (USBKeyboard_Initialize() != IPC_OK) {
+	if (_usb_keyboard_init() != IPC_OK) {
 		USB_Deinitialize();
 		return -2;
 	}
@@ -532,7 +532,7 @@ s32 KEYBOARD_Init(void)
 			LWP_CloseQueue(_kbd_queue);
 			free(_kbd_stack);
 
-			USBKeyboard_Close();
+			_usb_keyboard_close();
 
 			return -6;
 		}
@@ -557,9 +557,9 @@ s32 KEYBOARD_Deinit(void)
 		_kbd_thread_running = false;
 	}
 
-	USBKeyboard_Close();
+	_usb_keyboard_close();
 	KEYBOARD_FlushEvents();
-	USBKeyboard_Deinitialize();
+	_usb_keyboard_deinit();
 	USB_Deinitialize();
 
 	if (_sc_map) {
@@ -669,5 +669,23 @@ s32 KEYBOARD_SetKeyDelay(u16 initial, u16 delay)
 	_repeat.initial_delay = initial;
 	_repeat.delay = delay;
 	return 0;
+}
+
+//Turn on/off a led
+s32 KEYBOARD_SetLed(const keyboard_led led, bool on)
+{
+	return _usb_keyboard_set_led(led, on);
+}
+
+//Toggle a led
+s32 KEYBOARD_ToggleLed(const keyboard_led led)
+{
+	return _usb_keyboard_toggle_led(led);
+}
+
+//Check if a led is on or off
+bool KEYBOARD_GetLed(const keyboard_led led)
+{
+	return _usb_keyboard_get_led(led);
 }
 
