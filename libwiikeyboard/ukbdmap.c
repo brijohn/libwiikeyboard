@@ -568,6 +568,37 @@ static const keysym_t ukbd_keydesc_be[] = {
     KC(230),	KS_Mode_switch,	KS_Multi_key,
 };
 
+static const keysym_t ukbd_keydesc_us_colmak[] = {
+/*  pos      command		normal		shifted */
+    KC(4),	KS_a,
+    KC(5),	KS_b,
+    KC(6),	KS_c,
+    KC(7),	KS_s,
+    KC(8),	KS_f,
+    KC(9),	KS_t,
+    KC(10),	KS_d,
+    KC(11),	KS_h,
+    KC(12),	KS_u,
+    KC(13),	KS_n,
+    KC(14),	KS_e,
+    KC(15),	KS_i,
+    KC(16),	KS_m,
+    KC(17),	KS_k,
+    KC(18),	KS_y,
+    KC(19),	KS_semicolon, KS_colon,
+    KC(20),	KS_q,
+    KC(21),	KS_p,
+    KC(22),	KS_r,
+    KC(23),	KS_g,
+    KC(24),	KS_l,
+    KC(25),	KS_v,
+    KC(26),	KS_w,
+    KC(27),	KS_x,
+    KC(28),	KS_j,
+    KC(29),	KS_z,
+    KC(51),	KS_o,
+    KC(57),	KS_BackSpace,
+};
 
 static const keysym_t ukbd_keydesc_us_dvorak[] = {
 /*  pos      command		normal		shifted */
@@ -1089,6 +1120,7 @@ const struct wscons_keydesc ukbd_keydesctab[] = {
 	KBD_MAP(KB_NO,			KB_DK,	ukbd_keydesc_no),
 	KBD_MAP(KB_NO | KB_NODEAD,	KB_NO,	ukbd_keydesc_no_nodead),
 	KBD_MAP(KB_US | KB_DVORAK,	KB_US,	ukbd_keydesc_us_dvorak),
+	KBD_MAP(KB_US | KB_COLMAK,	KB_US,	ukbd_keydesc_us_colmak),
 	KBD_MAP(KB_US | KB_SWAPCTRLCAPS, KB_US,	ukbd_keydesc_swapctrlcaps),
 	KBD_MAP(KB_US | KB_IOPENER,	KB_US,	ukbd_keydesc_iopener),
 	KBD_MAP(KB_JP | KB_SWAPCTRLCAPS, KB_JP,	ukbd_keydesc_swapctrlcaps),
