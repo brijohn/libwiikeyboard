@@ -410,21 +410,28 @@ static void * _kbd_thread_func(void *arg) {
 	return NULL;
 }
 
-//Initialize USB and USB_KEYBOARD and the event queue
-s32 KEYBOARD_Init(void)
+s32 KEYBOARD_LoadKeymap(char *name)
+{
+	kbd_t layout = _get_keymap_by_name(name);
+
+	if (layout == KB_NONE)
+		return -1;
+
+	_ukbd_keymapdata.layout = layout;
+	if (wskbd_load_keymap(&_ukbd_keymapdata, &_sc_map, &_sc_maplen) < 0) {
+		_ukbd_keymapdata.layout = KB_NONE;
+		return -4;
+	}
+	return 0;
+}
+
+s32 _init_default_keymap(void)
 {
 	int fd;
 	struct stat st;
 	char keymap[64];
 	size_t i;
-
-	if (USB_Initialize() != IPC_OK)
-		return -1;
-
-	if (USBKeyboard_Initialize() != IPC_OK) {
-		USB_Deinitialize();
-		return -2;
-	}
+	s32 ret = -1;
 
 	if (_ukbd_keymapdata.layout == KB_NONE) {
 		keymap[0] = 0;
@@ -441,51 +448,61 @@ s32 KEYBOARD_Init(void)
 					}
 				}
 			}
-
 			close(fd);
 		}
-
-		_ukbd_keymapdata.layout = _get_keymap_by_name(keymap);
+		ret = KEYBOARD_LoadKeymap(keymap);
 	}
 
 	if (_ukbd_keymapdata.layout == KB_NONE) {
 		switch (CONF_GetLanguage()) {
 		case CONF_LANG_GERMAN:
-			_ukbd_keymapdata.layout = KB_DE;
+			ret = KEYBOARD_LoadKeymap("de");
 			break;
 
 		case CONF_LANG_JAPANESE:
-			_ukbd_keymapdata.layout = KB_JP;
+			ret = KEYBOARD_LoadKeymap("jp");
 			break;
 
 		case CONF_LANG_FRENCH:
-			_ukbd_keymapdata.layout = KB_FR;
+			ret = KEYBOARD_LoadKeymap("fr");
 			break;
 
 		case CONF_LANG_SPANISH:
-			_ukbd_keymapdata.layout = KB_ES;
+			ret = KEYBOARD_LoadKeymap("es");
 			break;
 
 		case CONF_LANG_ITALIAN:
-			_ukbd_keymapdata.layout = KB_IT;
+			ret = KEYBOARD_LoadKeymap("it");
 			break;
 
 		case CONF_LANG_DUTCH:
-			_ukbd_keymapdata.layout = KB_NL;
+			ret = KEYBOARD_LoadKeymap("nl");
 			break;
 
 		case CONF_LANG_SIMP_CHINESE:
 		case CONF_LANG_TRAD_CHINESE:
 		case CONF_LANG_KOREAN:
 		default:
-			_ukbd_keymapdata.layout = KB_US;
+			ret = KEYBOARD_LoadKeymap("us");
 			break;
 		}
 	}
+	return ret;
+}
 
-	if (wskbd_load_keymap(&_ukbd_keymapdata, &_sc_map, &_sc_maplen) < 0) {
-		_ukbd_keymapdata.layout = KB_NONE;
+//Initialize USB and USB_KEYBOARD and the event queue
+s32 KEYBOARD_Init(void)
+{
 
+	if (USB_Initialize() != IPC_OK)
+		return -1;
+
+	if (USBKeyboard_Initialize() != IPC_OK) {
+		USB_Deinitialize();
+		return -2;
+	}
+
+	if (_init_default_keymap() < 0) {
 		return -4;
 	}
 

@@ -78,6 +78,7 @@ typedef struct {
 s32 KEYBOARD_Init(void);
 s32 KEYBOARD_Deinit(void);
 
+s32 KEYBOARD_LoadKeymap(char *name);
 u16 KEYBOARD_KeycodeToKeysym(u8 keycode, u16 modifiers);
 
 s32 KEYBOARD_GetEvent(keyboard_event *event);
