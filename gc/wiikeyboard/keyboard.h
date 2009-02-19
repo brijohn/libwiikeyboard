@@ -83,6 +83,9 @@ u16 KEYBOARD_KeycodeToKeysym(u8 keycode, u16 modifiers);
 s32 KEYBOARD_GetEvent(keyboard_event *event);
 s32 KEYBOARD_FlushEvents(void);
 
+s32 KEYBOARD_SetKeyDelay(u16 inital, u16 delay);
+s32 KEYBOARD_EnableKeyRepeat(bool enable);
+
 #ifdef __cplusplus
    }
 #endif /* __cplusplus */

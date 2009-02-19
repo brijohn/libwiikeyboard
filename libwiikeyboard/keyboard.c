@@ -39,6 +39,7 @@ distribution.
 #include <gccore.h>
 #include <ogc/usb.h>
 #include <ogc/lwp_queue.h>
+#include <ogc/lwp_watchdog.h>
 
 #include <wiikeyboard/usbkeyboard.h>
 #include <wiikeyboard/keyboard.h>
@@ -79,6 +80,17 @@ typedef struct {
 	u8 keycode;
 	u16 symbol;
 } _keyheld;
+
+
+typedef struct {
+	bool enable;
+	u8 keycode;
+	u64 time;
+	u8  initial_delay;
+	u8  delay;
+} _key_repeat;
+
+static _key_repeat _repeat;
 
 #define MAXHELD 8
 static _keyheld _held[MAXHELD];
@@ -327,6 +339,20 @@ static void _kbd_event_cb(USBKeyboard_event kevent)
 	event.symbol = ksym;
 	event.modifiers = _modifiers;
 
+	if (_repeat.enable) {
+		if (event.type == KEYBOARD_PRESSED &&
+		    (KS_GROUP(event.symbol) == KS_GROUP_Ascii ||
+		     KS_GROUP(event.symbol) == KS_GROUP_Keypad ||
+		     KS_GROUP(event.symbol) == KS_GROUP_Function)) {
+			_repeat.keycode = event.keycode;
+			_repeat.time = ticks_to_millisecs(gettime()) + _repeat.initial_delay;
+		} else if (event.type == KEYBOARD_RELEASED) {
+			if (event.keycode == _repeat.keycode) {
+				_repeat.keycode = 0;
+			}
+		}
+	}
+
 	_kbd_addEvent(&event);
 
 	return;
@@ -465,6 +491,9 @@ s32 KEYBOARD_Init(void)
 
 	__lwp_queue_initialize(&_queue, 0, 0, 0);
 
+	KEYBOARD_SetKeyDelay(400, 100);
+	KEYBOARD_EnableKeyRepeat(0);
+
 	if (!_kbd_thread_running) {
 		// start the keyboard thread
 		_kbd_thread_quit = false;
@@ -568,8 +597,22 @@ s32 KEYBOARD_GetEvent(keyboard_event *event)
 {
 	_node *n = (_node *) __lwp_queue_get(&_queue);
 
-	if (!n)
+	if (!n) {
+		if (_repeat.enable) {
+			s64 time = ticks_to_millisecs(gettime());
+			if (_repeat.keycode != 0 &&
+			    _repeat.time < time) {
+				event->type = KEYBOARD_PRESSED;
+				event->keycode = _repeat.keycode;
+				event->modifiers = _modifiers;
+				event->symbol =
+					KEYBOARD_KeycodeToKeysym(_repeat.keycode, _modifiers);
+				_repeat.time = time + _repeat.delay;
+				return 1;
+			}
+		}
 		return 0;
+	}
 
 	*event = n->event;
 
@@ -596,5 +639,18 @@ s32 KEYBOARD_FlushEvents(void)
 	}
 
 	return res;
+}
+
+s32 KEYBOARD_EnableKeyRepeat(bool enable)
+{
+	_repeat.enable = enable;
+	return 0;
+}
+
+s32 KEYBOARD_SetKeyDelay(u16 initial, u16 delay)
+{
+	_repeat.initial_delay = initial;
+	_repeat.delay = delay;
+	return 0;
 }
 
