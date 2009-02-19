@@ -733,6 +733,7 @@
 #define KB_MACHDEP		0x000080 /* machine dependent */
 #define	KB_APPLE		0x010000 /* Apple specific layout */
 #define KB_COLMAK		0x020000 /* colmak layout */
+#define KB_INTL			0x040000 /* International layout */
 
 #define KB_ENCTAB \
 	{ KB_USER,	"user" }, \
@@ -773,6 +774,7 @@
 	{ KB_IOPENER,	"iopener" }, \
 	{ KB_MACHDEP,	"machdep" }, \
 	{ KB_COLMAK,	"colmak" }, \
+	{ KB_INTL,	"intl" }, \
 	{ KB_APPLE,	"apple" }
 
 #endif /* !_DEV_WSCONS_WSKSYMDEF_H_ */
