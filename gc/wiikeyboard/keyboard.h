@@ -78,6 +78,8 @@ typedef struct {
 s32 KEYBOARD_Init(void);
 s32 KEYBOARD_Deinit(void);
 
+u16 KEYBOARD_KeycodeToKeysym(u8 keycode, u16 modifiers);
+
 s32 KEYBOARD_GetEvent(keyboard_event *event);
 s32 KEYBOARD_FlushEvents(void);
 

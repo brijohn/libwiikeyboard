@@ -170,9 +170,6 @@ void update_modifier(u_int type, int toggle, int mask) {
 static void _kbd_event_cb(USBKeyboard_event kevent)
 {
 	keyboard_event event;
-	struct wscons_keymap kp;
-	keysym_t *group;
-	int gindex;
 	keysym_t ksym;
 	int i;
 
@@ -201,10 +198,13 @@ static void _kbd_event_cb(USBKeyboard_event kevent)
 
 	event.keycode = kevent.keyCode;
 
-	wskbd_get_mapentry(&_ukbd_keymapdata, event.keycode, &kp);
+	ksym = KEYBOARD_KeycodeToKeysym(event.keycode, _modifiers);
+
+	if (ksym == KS_voidSymbol)
+		return;
 
 	/* Now update modifiers */
-	switch (kp.group1[0]) {
+	switch (ksym) {
 	case KS_Shift_L:
 		update_modifier(event.type, 0, MOD_SHIFT_L);
 		break;
@@ -260,29 +260,6 @@ static void _kbd_event_cb(USBKeyboard_event kevent)
 		break;
 	}
 
-	/* Get the keysym */
-	if (_modifiers & (MOD_MODESHIFT|MOD_MODELOCK) &&
-	    !MOD_ONESET(_modifiers, MOD_ANYCONTROL))
-		group = &kp.group2[0];
-	else
-		group = &kp.group1[0];
-
-	if ((_modifiers & MOD_NUMLOCK) &&
-	    KS_GROUP(group[1]) == KS_GROUP_Keypad) {
-		gindex = !MOD_ONESET(_modifiers, MOD_ANYSHIFT);
-		ksym = group[gindex];
-	} else {
-		/* CAPS alone should only affect letter keys */
-		if ((_modifiers & (MOD_CAPSLOCK | MOD_ANYSHIFT)) ==
-		    MOD_CAPSLOCK) {
-			gindex = 0;
-			ksym = ksym_upcase(group[0]);
-		} else {
-			gindex = MOD_ONESET(_modifiers, MOD_ANYSHIFT);
-			ksym = group[gindex];
-		}
-	}
-
 	/* Process compose sequence and dead accents */
 	switch (KS_GROUP(ksym)) {
 	case KS_GROUP_Mod:
@@ -307,17 +284,7 @@ static void _kbd_event_cb(USBKeyboard_event kevent)
 	}
 
 	if ((event.type == KEYBOARD_PRESSED) && (_composelen > 0)) {
-		/*
-		 * If the compose key also serves as AltGr (i.e. set to both
-		 * KS_Multi_key and KS_Mode_switch), and would provide a valid,
-		 * distinct combination as AltGr, leave compose mode.
-		 */
-		if (_composelen == 2 && group == &kp.group2[0]) {
-			if (kp.group1[gindex] != kp.group2[gindex])
-				_composelen = 0;
-		}
-
-		if (_composelen != 0) {
+		if (KS_GROUP(ksym) != KS_GROUP_Mod) {
 			_composebuf[2 - _composelen] = ksym;
 			if (--_composelen == 0) {
 				ksym = wskbd_compose_value(_composebuf);
@@ -556,6 +523,44 @@ s32 KEYBOARD_Deinit(void)
 	}
 
 	return 1;
+}
+
+u16 KEYBOARD_KeycodeToKeysym(u8 keycode, u16 modifiers)
+{
+	struct wscons_keymap kp;
+	int gindex;
+	keysym_t *group;
+	keysym_t ksym;
+
+	if (keycode > _sc_maplen)
+		return KS_voidSymbol;
+
+	kp = _sc_map[keycode];
+
+	/* Get the keysym */
+	if (_modifiers & (MOD_MODESHIFT|MOD_MODELOCK) &&
+	    !MOD_ONESET(_modifiers, MOD_ANYCONTROL))
+		group = kp.group2;
+	else
+		group = kp.group1;
+
+	if ((_modifiers & MOD_NUMLOCK) &&
+	    KS_GROUP(group[1]) == KS_GROUP_Keypad) {
+		gindex = !MOD_ONESET(_modifiers, MOD_ANYSHIFT);
+		ksym = group[gindex];
+	} else {
+		/* CAPS alone should only affect letter keys */
+		if ((_modifiers & (MOD_CAPSLOCK | MOD_ANYSHIFT)) ==
+		    MOD_CAPSLOCK) {
+			gindex = 0;
+			ksym = ksym_upcase(group[0]);
+		} else {
+			gindex = MOD_ONESET(_modifiers, MOD_ANYSHIFT);
+			ksym = group[gindex];
+		}
+	}
+
+	return ksym;
 }
 
 //Get the first event of the event queue
