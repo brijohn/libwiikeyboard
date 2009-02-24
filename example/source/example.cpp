@@ -125,11 +125,11 @@ int main(int argc, char **argv) {
 		if (event.type != KEYBOARD_PRESSED)
 			continue;
 		//TODO
-		if (((event.keysym.sym >> 8) & 0xFF) == 0) {
-			sprintf(result,"%s%c", result, event.keysym.sym & 0xFF);
-			printf("%c", event.keysym.sym & 0xFF);
+		if (((event.symbol >> 8) & 0xFF) == 0) {
+			sprintf(result,"%s%c", result, event.symbol & 0xFF);
+			printf("%c", event.symbol & 0xFF);
 		}
-		if (event.keysym.sym == KBD_return)
+		if (event.symbol == KS_Return)
 			break;
 	}
 	
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -282,7 +282,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -353,7 +353,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -408,7 +408,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -430,7 +430,7 @@ int main(int argc, char **argv) {
 		if (event.type == KEYBOARD_PRESSED)
 			break;
 	}
-	if (event.keysym.sym == KBD_y)
+	if (event.symbol == KS_y)
 		report[num++]=1;
 	else
 		report[num++]=0;
@@ -465,9 +465,9 @@ int main(int argc, char **argv) {
 				printf("\nA keyboard has been disconnected\n");
 			break;
 			case KEYBOARD_PRESSED:
-				if (((event.keysym.sym >> 8) & 0xFF) == 0) {
-					sprintf(result,"%s%c", result, event.keysym.sym & 0xFF);
-					printf("%c", event.keysym.sym & 0xFF);
+				if (((event.symbol >> 8) & 0xFF) == 0) {
+					sprintf(result,"%s%c", result, event.symbol & 0xFF);
+					printf("%c", event.symbol & 0xFF);
 				}
 			break;
 			case KEYBOARD_RELEASED:
