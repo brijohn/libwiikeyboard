@@ -35,15 +35,9 @@ distribution.
    extern "C" {
 #endif /* __cplusplus */
 
-#ifdef LIBBUILD
-#include "usbkeyboard.h"
-#include "keymapper.h"
-#else
-#include <libwiikeyboard/usbkeyboard.h>
-#endif
+#include <wiikeyboard/usbkeyboard.h>
 
 #include "keyboard_keysym.h"
-
 
 typedef enum
 {
@@ -51,7 +45,6 @@ typedef enum
 	KEYBOARD_RELEASED,
 	KEYBOARD_DISCONNECTED,
 	KEYBOARD_CONNECTED
-
 } keyboard_event_type;
 
 typedef struct _keyboard_keysym
@@ -59,10 +52,9 @@ typedef struct _keyboard_keysym
 	u8 scancode;
 	u16 sym;
 	KEYBOARD_MOD mod;
-
 } keyboard_keysym;
 
-typedef struct _KeyboardEvent {
+typedef struct _KeyboardEvent{
 	keyboard_event_type type;
 	keyboard_keysym keysym;
 } keyboard_event;
@@ -74,18 +66,19 @@ typedef enum
 	KEYBOARD_LEDSCROLL
 } keyboard_led;
 
+typedef enum
+{
+	KEYBOARD_KEYMAP_US,
+	KEYBOARD_KEYMAP_DE
+} keyboard_keymap;
+
 s32 KEYBOARD_Init(void);
 s32 KEYBOARD_Deinit(void);
 
-s32 KEYBOARD_InitKeyMap();
-s32 KEYBOARD_LoadKeyMap(char* name);
-u16 KEYBOARD_GetKeySym(u8 scancode, u16 modifiers);
+s32 KEYBOARD_LoadKeyMap(const keyboard_keymap keymap);
 
 s32 KEYBOARD_GetEvent(keyboard_event *event);
 s32 KEYBOARD_FlushEvents(void);
-
-s32 KEYBOARD_EnableKeyRepeat(bool enable);
-s32 KEYBOARD_SetKeyDelay(u16 delay);
 
 s32 KEYBOARD_SetLed(const keyboard_led, bool on);
 s32 KEYBOARD_ToggleLed(const keyboard_led);

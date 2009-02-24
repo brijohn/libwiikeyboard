@@ -34,10 +34,18 @@ distribution.
 
 #include <gccore.h>
 #include <ogc/usb.h>
-#include <ogc/lwp_watchdog.h>
+#include <ogc/lwp_queue.h>
+#include <wiikeyboard/keyboard.h>
 
-#include <keyboard.h>
-#include "keyboard_priv.h"
+#include "keymapper.h"
+
+struct kbd_manager
+{
+	USBKeyboard kbd;
+	struct symbol keymap[256];
+	
+	lwp_queue queue;
+};
 
 typedef struct _node
 {
@@ -45,7 +53,11 @@ typedef struct _node
 	keyboard_event event;
 } node;
 
-struct kbd_manager *_manager = NULL;
+static struct kbd_manager *_manager = NULL;
+
+// keymaps from keymaps.c
+extern struct keymap kbdmap_US;
+extern struct keymap kbdmap_DE;
 
 #define KBD_THREAD_STACKSIZE (1024 * 4)
 #define KBD_THREAD_PRIO 64
@@ -74,13 +86,39 @@ static void _kbd_setModifier(const KEYBOARD_MOD mod, const u8 on) {
 		_manager->kbd.modifiers &= ~mod;
 }
 
+/* 
+	Functions converts scancode + modifiers to keysym.
+	Returns valid keysym or 0xfffe if no symbol is mapped
+	to scancode.
+*/
+static u16 _kbd_mapSym(u8 scancode, u16 modifiers)
+{
+	struct symbol *ref = &_manager->keymap[scancode];
+	u16 *group;
+	u8 shift = ((modifiers & KMOD_LSHIFT) || (modifiers & KMOD_RSHIFT));
+
+	if (ref->scancode != scancode)
+		return 0xfffe;
+
+	if (modifiers & KMOD_RALT)
+		group = ref->group2;
+	else
+		group = ref->group1;
+
+	if (!shift)
+		return group[0];
+	else
+		return (group[1] == KBD_null ? group[0] : group[1]);
+	
+	return 0xfffe;
+}
+
 //Event callback, gets called when an event occurs in usbkeyboard
 static s32 _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 {
 	USBKeyboard *kbd = (USBKeyboard*) usrdata;
 	keyboard_event event;
 	event.type = kevent.type;
-
 	if (event.type == KEYBOARD_DISCONNECTED)
 	{
 		_kbd_addEvent(event);
@@ -88,7 +126,7 @@ static s32 _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 	}
 
 	event.keysym.scancode = kevent.keyCode;
-	event.keysym.sym = KEYBOARD_GetKeySym(event.keysym.scancode, kbd->modifiers);
+	event.keysym.sym = _kbd_mapSym(event.keysym.scancode, kbd->modifiers);
 	if (event.keysym.sym == 0xfffe)
 		return 0;
 
@@ -109,31 +147,22 @@ static s32 _kbd_event_cb(USBKeyboard_event kevent, void *usrdata)
 	if (event.keysym.sym == KBD_RightMeta)
 		_kbd_setModifier(KMOD_RMETA, event.type == KEYBOARD_PRESSED);
 
-	if (event.keysym.sym == KBD_Numlock && event.type == KEYBOARD_RELEASED) {
+	if (event.keysym.sym == KBD_Numlock && event.type == KEYBOARD_PRESSED) {
 		_kbd_setModifier(KMOD_NUM, !(kbd->modifiers & KMOD_NUM));
 		USBKeyboard_ToggleLed(&_manager->kbd, USBKEYBOARD_LEDNUM);
 	}
 
-	if (event.keysym.sym == KBD_Capslock && event.type == KEYBOARD_RELEASED) {
+	if (event.keysym.sym == KBD_Capslock && event.type == KEYBOARD_PRESSED) {
 		_kbd_setModifier(KMOD_CAPS, !(kbd->modifiers & KMOD_CAPS));
 		USBKeyboard_ToggleLed(&_manager->kbd, USBKEYBOARD_LEDCAPS);
 	}
 
-	if (event.keysym.sym == KBD_Scrollock && event.type == KEYBOARD_RELEASED) {
+	if (event.keysym.sym == KBD_Scrollock && event.type == KEYBOARD_PRESSED)
 		USBKeyboard_ToggleLed(&_manager->kbd, USBKEYBOARD_LEDSCROLL);
-	}
+
 	event.keysym.mod = kbd->modifiers;
-	if (_manager->repeat.enable) {
-		if (event.type == KEYBOARD_PRESSED) {
-			_manager->repeat.ev = event;
-			_manager->repeat.repeat_time = ticks_to_millisecs(gettime()) + 400;
-		} else if (event.type == KEYBOARD_RELEASED) {
-			if (event.keysym.scancode == _manager->repeat.ev.keysym.scancode) {
-				_manager->repeat.ev.keysym.scancode = 0;
-			}
-		}
-	}
 	_kbd_addEvent(event);
+
 	return 1;
 }
 
@@ -147,7 +176,7 @@ static s32 _kbd_scan_for_keyboard(void)
 
 	if (ret < 1)
 		return ret;
-
+	
 	ret = USBKeyboard_Open(&_manager->kbd, vid, pid);
 
 	if (ret < 0)
@@ -209,17 +238,33 @@ s32 KEYBOARD_Init(void)
 
 		if (!_manager)
 			return -3;
+
 		memset(_manager, 0, sizeof (struct kbd_manager));
 		__lwp_queue_initialize(&_manager->queue,0,0,0);
-	}
 
-	if(KEYBOARD_InitKeyMap() < 0) {
-		USB_Deinitialize();
-		return -3;
-	}
+		keyboard_keymap map;
 
-	KEYBOARD_SetKeyDelay(100);
-	KEYBOARD_EnableKeyRepeat(0);
+		switch (CONF_GetLanguage()) {
+		case CONF_LANG_GERMAN:
+			map = KEYBOARD_KEYMAP_DE;
+			break;
+
+		// TODO: integrate these keymaps in keymaps.c
+		case CONF_LANG_JAPANESE:
+		case CONF_LANG_FRENCH:
+		case CONF_LANG_SPANISH:
+		case CONF_LANG_ITALIAN:
+		case CONF_LANG_DUTCH:
+		case CONF_LANG_SIMP_CHINESE:
+		case CONF_LANG_TRAD_CHINESE:
+		case CONF_LANG_KOREAN:
+		default:
+			map = KEYBOARD_KEYMAP_US;
+			break;
+		}
+
+		KEYBOARD_LoadKeyMap(map);
+	}
 
 	if (!_kbd_thread_running) {
 		// start the keyboard thread
@@ -276,6 +321,32 @@ s32 KEYBOARD_Deinit(void)
 		KEYBOARD_FlushEvents();
 		free(_manager);
 	}
+
+	return 1;
+}
+
+s32 KEYBOARD_LoadKeyMap(const keyboard_keymap keymap) {
+	struct keymap *map;
+	u8 i;
+
+	if (!_manager)
+		return -1;
+
+	switch (keymap) {
+	case KEYBOARD_KEYMAP_DE:
+		map = &kbdmap_DE;
+		break;
+
+	default:
+		map = &kbdmap_US;
+		break;
+	}
+
+	memset(_manager->keymap, 0, sizeof(struct symbol) * 256);
+
+	for (i = 0; i < map->map_length; i++)
+		_manager->keymap[map->symbols[i].scancode] = map->symbols[i];
+
 	return 1;
 }
 
@@ -284,21 +355,11 @@ s32 KEYBOARD_GetEvent(keyboard_event *event)
 {
 	if (!_manager)
 		return -1;
+
 	node *n = (node*) __lwp_queue_get(&_manager->queue);
 
-	if (!n) {
-		if (_manager->repeat.enable) {
-			s64 time = ticks_to_millisecs(gettime());
-			if (_manager->repeat.ev.keysym.scancode != 0 &&
-			    _manager->repeat.repeat_time < time) {
-				*event = _manager->repeat.ev;
-				_manager->repeat.repeat_time =
-					time + _manager->repeat.repeat_delay;
-				return 1;
-			}
-		}
+	if (!n)
 		return 0;
-	}
 
 	*event = n->event;
 
@@ -328,20 +389,6 @@ s32 KEYBOARD_FlushEvents(void)
 	}
 
 	return res;
-}
-
-s32 KEYBOARD_EnableKeyRepeat(bool enable)
-{
-	if(_manager)
-		_manager->repeat.enable = enable;
-	return 0;
-}
-
-s32 KEYBOARD_SetKeyDelay(u16 delay)
-{
-	if(_manager)
-		_manager->repeat.repeat_delay = delay;
-	return 0;
 }
 
 //Turn on/off a led

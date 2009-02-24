@@ -18,7 +18,7 @@ include $(DEVKITPPC)/wii_rules
 PLATFORM	:=	wii
 BUILD		:=	wii_release
 SOURCES		:=	libwiikeyboard
-INCLUDES	:=	gc/wiikeyboard libwiikeyboard
+INCLUDES	:=	gc libwiikeyboard
 DATA		:=
 LIBDIR		:=	../lib
 

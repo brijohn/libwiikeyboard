@@ -4,7 +4,6 @@ usbkeyboard.c -- Usb keyboard support(boot protocol)
 
 Copyright (C) 2008, 2009
 DAVY Guillaume davyg2@gmail.com
-Brian Johnson brijohn@gmail.com
 dhewg
 
 This software is provided 'as-is', without any express or implied
@@ -36,7 +35,7 @@ distribution.
 #include <gccore.h>
 #include <ogc/usb.h>
 
-#include <usbkeyboard.h>
+#include <wiikeyboard/usbkeyboard.h>
 
 #define	HEAP_SIZE 4096
 #define DEVLIST_MAXSIZE 8
@@ -52,12 +51,10 @@ static s32 _disconnect(s32 retval,void* data)
 	if (!key->cb)
 		return 1;
 
-
 	USBKeyboard_event ev;
 	ev.type = USBKEYBOARD_DISCONNECTED;
 
 	key->cb (ev,key->cbData);
-
 	return 1;
 }
 
@@ -128,11 +125,11 @@ s32 USBKeyboard_Find(u16 *vid, u16 *pid)
 		p_vid = *((u16 *) (buffer + (i << 3) + 4));
 		p_pid = *((u16 *) (buffer + (i << 3) + 6));
 		
-		if ((p_vid==0)||(p_pid==0))
+		if ((p_vid==0) || (p_pid==0))
 			continue;
 		
 		s32 fd=0;
-		if (USB_OpenDevice("oh0",p_vid,p_pid,&fd)<0)
+		if (USB_OpenDevice("oh0",p_vid,p_pid,&fd) < 0)
 			continue;
 
 		u32 iConf, iInterface;
@@ -158,6 +155,7 @@ s32 USBKeyboard_Find(u16 *vid, u16 *pid)
 			if (found)
 				break;
 		}
+
 		USB_FreeDescriptors(&udd);
 		USB_CloseDevice(&fd);
 	}
@@ -178,7 +176,7 @@ s32 USBKeyboard_Open(USBKeyboard *key, u16 vid, u16 pid)
 
 	key->connect = false;
 
-	if (USB_OpenDevice("oh0",vid,pid,&key->fd)<0)
+	if (USB_OpenDevice("oh0",vid,pid,&key->fd) < 0)
 		return -1;
 
 	u32 iConf, iInterface, iEp;

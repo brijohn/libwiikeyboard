@@ -2,7 +2,7 @@
 
 keymapper.h -- keyboard mappings
 
-Copyright (C) 2009
+Copyright (C) 2008, 2009
 Brian Johnson brijohn@gmail.com
 
 This software is provided 'as-is', without any express or implied
@@ -25,9 +25,10 @@ must not be misrepresented as being the original software.
 distribution.
 
 -------------------------------------------------------------*/
-
 #ifndef __KEYMAPPER_H__
 #define __KEYMAPPER_H__
+
+#include <gctypes.h>
 
 #ifdef __cplusplus
    extern "C" {
@@ -41,7 +42,7 @@ struct symbol {
 
 struct keymap {
 	char name[12];
-	long map_length;
+	u8 map_length;
 	struct symbol symbols[];
 };
 
@@ -50,7 +51,6 @@ struct keymap {
 	.name = #title, \
 	.map_length = size, \
 	.symbols = {
-
 
 #define END_KEYMAP \
 	}, \

@@ -4,7 +4,6 @@ usbkeyboard.h -- Usb keyboard support(boot protocol)
 
 Copyright (C) 2008, 2009
 DAVY Guillaume davyg2@gmail.com
-Brian Johnson brijohn@gmail.com
 dhewg
 
 This software is provided 'as-is', without any express or implied
@@ -27,6 +26,7 @@ must not be misrepresented as being the original software.
 distribution.
 
 -------------------------------------------------------------*/
+
 #ifndef __USBKEYBOARD_H__
 #define __USBKEYBOARD_H__
 
@@ -34,14 +34,13 @@ distribution.
    extern "C" {
 #endif /* __cplusplus */
 
-
 #define USB_CLASS_HID				0x03
 #define USB_SUBCLASS_BOOT			0x01
-#define USB_PROTOCOL_KEYBOARD			0x01
+#define USB_PROTOCOL_KEYBOARD		0x01
 
-#define USB_ENPOINT_INTERRUPT			0x03
+#define USB_ENPOINT_INTERRUPT		0x03
 
-#define USB_DT_HID				0x21
+#define USB_DT_HID					0x21
 #define USB_DT_HID_SIZE				0x09
 #define USB_DT_REPORT				0x22
 
@@ -62,7 +61,6 @@ typedef enum
 	USBKEYBOARD_PRESSED = 0,
 	USBKEYBOARD_RELEASED,
 	USBKEYBOARD_DISCONNECTED
-
 } USBKeyboard_eventType;
 
 typedef enum
@@ -76,7 +74,6 @@ typedef struct
 {
 	USBKeyboard_eventType type;
 	u8 keyCode;
-
 } USBKeyboard_event;
 
 typedef s32 (*eventcallback)(USBKeyboard_event event, void *usrdata);

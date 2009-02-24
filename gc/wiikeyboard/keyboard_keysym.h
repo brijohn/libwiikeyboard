@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------
+
 keyboard_keysym.h
 
 Copyright (C) 2008, 2009
 DAVY Guillaume davyg2@gmail.com
-Brian Johnson brijohn@gmail.com
 
 This software is provided 'as-is', without any express or implied
 warranty.  In no event will the authors be held liable for any
