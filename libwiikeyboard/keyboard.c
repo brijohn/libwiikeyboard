@@ -402,8 +402,6 @@ static void * _kbd_thread_func(void *arg) {
 			turns = 0;
 		}
 		turns++;
-
-		_usb_keyboard_scan();
 		usleep(KBD_THREAD_UDELAY);
 	}
 

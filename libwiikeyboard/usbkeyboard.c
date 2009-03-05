@@ -92,6 +92,8 @@ struct ukbd {
 };
 
 static s32 hId = -1;
+static u8 *_intr_kbd_buffer;
+
 static struct ukbd *_kbd;
 
 static u8 _ukbd_mod_map[][2] = {
@@ -106,6 +108,8 @@ static u8 _ukbd_mod_map[][2] = {
 };
 
 #define MODMAPSIZE (sizeof(_ukbd_mod_map)/sizeof(_ukbd_mod_map[0]))
+
+s32 _usb_keyboard_intr_cb(s32 result, void* usrdata);
 
 static void _submit(usb_keyboard_event_type type, u8 code)
 {
@@ -156,26 +160,6 @@ static s32 _set_protocol(u8 protocol)
 	return USB_WriteCtrlMsg(_kbd->fd, USB_REQTYPE_SET, USB_REQ_SETPROTOCOL, protocol, 0, 0, 0);
 }
 
-//Get an input report from interrupt pipe
-static s32 _get_input_report(void)
-{
-	u8 *buffer = 0;
-
-	buffer = iosAlloc(hId, 8);
-
-	if (buffer == NULL)
-		return -1;
-
-	s32 ret = USB_ReadIntrMsg(_kbd->fd, _kbd->ep, 8, buffer);
-
-	memcpy(&_kbd->sc_ndata, buffer, 8);
-	iosFree(hId, buffer);
-
-	_kbd->sc_ndata.modifiers = (_kbd->sc_ndata.modifiers << 8) | (_kbd->sc_ndata.modifiers >> 8);
-
-	return ret;
-}
-
 #if 0
 //Get an input report from control pipe
 static s32 _get_output_report(u8 *leds)
@@ -224,16 +208,23 @@ s32 _usb_keyboard_init(void)
 	if (hId < 0)
 		return IPC_ENOHEAP;
 
+	_intr_kbd_buffer = iosAlloc(hId, 8);
+
+	if (_intr_kbd_buffer == NULL)
+		return IPC_ENOMEM;
+
 	return IPC_OK;
 }
 
 //Destroy the io heap
 s32 _usb_keyboard_deinit(void)
 {
+	s32 retval;
+
 	if (hId < 0)
 		return -1;
 
-	s32 retval;
+	iosFree(hId, _intr_kbd_buffer);
 	retval = iosDestroyHeap(hId);
 	hId = -1;
 
@@ -392,6 +383,7 @@ s32 _usb_keyboard_open(const eventcallback cb)
 
 	_kbd->connected = true;
 
+	USB_ReadIntrMsgAsync(_kbd->fd, _kbd->ep, 8, _intr_kbd_buffer, _usb_keyboard_intr_cb, 0);
 	return 1;
 }
 
@@ -417,18 +409,19 @@ bool _usb_keyboard_is_connected(void) {
 }
 
 //Scan for key presses and generate events for the callback function
-s32 _usb_keyboard_scan(void)
+s32 _usb_keyboard_intr_cb(s32 result, void* usrdata)
 {
 	int i, j, index;
 
-	if (!_kbd)
-		return -1;
+	if (!_kbd || result < 0)
+		return 0;
 
-	if (_get_input_report() < 0)
-		return -2;
+	memcpy(&_kbd->sc_ndata, _intr_kbd_buffer, 8);
+
+	_kbd->sc_ndata.modifiers = (_kbd->sc_ndata.modifiers << 8) | (_kbd->sc_ndata.modifiers >> 8);
 
 	if (_kbd->sc_ndata.keycode[0] == KEY_ERROR)
-		return 0;
+		goto done;
 
 	if (_kbd->sc_ndata.modifiers != _kbd->sc_odata.modifiers) {
 		for (i = 0; i < MODMAPSIZE; ++i) {
@@ -472,7 +465,8 @@ s32 _usb_keyboard_scan(void)
 	}
 
 	_kbd->sc_odata = _kbd->sc_ndata;
-
+done:
+	USB_ReadIntrMsgAsync(_kbd->fd, _kbd->ep, 8, _intr_kbd_buffer, _usb_keyboard_intr_cb, 0);
 	return 0;
 }
 

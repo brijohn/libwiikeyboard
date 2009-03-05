@@ -64,7 +64,6 @@ s32 _usb_keyboard_open(const eventcallback cb);
 void _usb_keyboard_close(void);
 
 bool _usb_keyboard_is_connected(void);
-s32 _usb_keyboard_scan(void);
 
 s32 _usb_keyboard_set_led(const usb_keyboard_led led, bool on);
 s32 _usb_keyboard_toggle_led(const usb_keyboard_led led);
